@@ -1,0 +1,27 @@
+{
+  "name": "webapp-deploy-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for WebApp deployment service",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "db:create": "wrangler d1 create webapp-db",
+    "db:init": "wrangler d1 execute webapp-db --file=schema.sql",
+    "db:query": "wrangler d1 execute webapp-db --command"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "webapp",
+    "deployment"
+  ],
+  "author": "NekroAgent Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "wrangler": "^3.94.0"
+  }
+}
+

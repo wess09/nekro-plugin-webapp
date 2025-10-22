@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebApp 部署管理</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        #app {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-top: 1rem;
+        }
+
+        .status.healthy {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+
+        .status.warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.3em;
+        }
+
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+
+        .button:hover {
+            background: #5568d3;
+        }
+
+        .button.danger {
+            background: #f44336;
+        }
+
+        .button.danger:hover {
+            background: #da190b;
+        }
+
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .key-item, .page-item {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            background: #f9f9f9;
+        }
+
+        .key-item-header, .page-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .key-name, .page-title {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .key-id, .page-id {
+            font-family: monospace;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .key-info, .page-info {
+            font-size: 0.85em;
+            color: #777;
+            margin-top: 0.5rem;
+        }
+
+        .key-value {
+            background: #f5f5f5;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85em;
+            word-break: break-all;
+            margin-top: 0.5rem;
+            border: 1px dashed #ddd;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .button-group button {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9em;
+            z-index: 1000;
+            animation: slideIn 0.3s;
+        }
+
+        .toast.success {
+            background: #4caf50;
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .setup-guide {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .setup-guide h3 {
+            color: #856404;
+            margin-bottom: 0.5rem;
+            font-size: 1em;
+        }
+
+        .setup-guide ol {
+            margin-left: 1.5rem;
+            color: #856404;
+        }
+
+        .setup-guide li {
+            margin: 0.5rem 0;
+            font-size: 0.9em;
+        }
+
+        .setup-guide code {
+            background: #fff;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h1>🚀 WebApp 部署管理</h1>
+            <p class="subtitle">通过 Cloudflare Workers 快速部署 HTML 应用</p>
+            <div class="status" :class="healthStatus.class">
+                {{ healthStatus.text }}
+            </div>
+        </div>
+
+        <!-- 管理员密钥输入 -->
+        <div class="card" v-if="workerConfigured && !adminKey">
+            <h2>🔐 输入管理员密钥</h2>
+            <p style="margin-bottom: 1rem; color: #666;">
+                请输入在插件配置中设置的管理员密钥，以管理页面和密钥。
+                密钥将保存在浏览器本地存储中。
+            </p>
+            <div class="input-group">
+                <label>管理员密钥</label>
+                <input v-model="adminKey" type="password" placeholder="输入管理员密钥" @keyup.enter="saveAdminKey" />
+            </div>
+            <button class="button" @click="saveAdminKey">
+                保存并继续
+            </button>
+            <p style="margin-top: 1rem; font-size: 0.85em; color: #999;">
+                提示：如果使用的是默认密钥，请输入 "admin-change-me-immediately"
+            </p>
+        </div>
+
+        <!-- 设置指南 -->
+        <div class="card" v-if="!workerConfigured">
+            <h2>📖 部署指南</h2>
+            <div class="setup-guide">
+                <h3>快速开始（5分钟完成）</h3>
+                <ol>
+                    <li>访问 <a href="https://dash.cloudflare.com/" target="_blank">Cloudflare Dashboard</a>，登录或注册账号</li>
+                    <li>在左侧菜单选择 <code>Workers & Pages</code></li>
+                    <li>点击 <code>Create application</code> → <code>Create Worker</code></li>
+                    <li>点击 <code>Connect to Git</code>，连接此仓库（<code>nekro-plugin-webapp</code>）</li>
+                    <li>Cloudflare 会自动识别 <code>worker/</code> 目录并部署</li>
+                    <li>在 Worker 设置中创建 D1 数据库：
+                        <ul>
+                            <li>Settings → Variables → D1 database bindings</li>
+                            <li>点击 <code>Add binding</code></li>
+                            <li>Variable name: <code>DB</code></li>
+                            <li>点击 <code>Create new database</code>，名称填 <code>webapp-db</code></li>
+                        </ul>
+                    </li>
+                    <li>设置环境变量 <code>ADMIN_KEY_HASH</code>：
+                        <ul>
+                            <li>在 Settings → Variables → Environment Variables</li>
+                            <li>点击 <code>Add variable</code></li>
+                            <li>Name: <code>ADMIN_KEY_HASH</code></li>
+                            <li>Value: 生成管理员密钥的 SHA-256 哈希（见下方工具）</li>
+                            <li>勾选 <code>Encrypt</code></li>
+                        </ul>
+                    </li>
+                    <li>初始化数据库：在 Worker 的 D1 database 页面，执行 <code>worker/schema.sql</code> 中的 SQL</li>
+                    <li>复制 Worker URL 和管理员密钥，填写到 NekroAgent 插件配置中</li>
+                </ol>
+                
+                <h3 style="margin-top: 1rem;">生成管理员密钥</h3>
+                <div class="input-group">
+                    <button class="button" @click="generateAdminKey">生成新密钥</button>
+                </div>
+                <div v-if="generatedKey.key">
+                    <div class="key-value">
+                        <strong>密钥（保存好，仅显示一次）：</strong><br>
+                        {{ generatedKey.key }}
+                    </div>
+                    <div class="key-value" style="margin-top: 0.5rem;">
+                        <strong>SHA-256 哈希（填入环境变量）：</strong><br>
+                        {{ generatedKey.hash }}
+                    </div>
+                    <button class="button" @click="copyToClipboard(generatedKey.hash)" style="margin-top: 0.5rem;">
+                        复制哈希值
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="card" v-if="workerConfigured">
+            <h2>📊 统计信息</h2>
+            <div v-if="stats" class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ stats.pages_count }}</div>
+                    <div class="stat-label">总页面数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ stats.keys_count }}</div>
+                    <div class="stat-label">活跃密钥</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ stats.total_access }}</div>
+                    <div class="stat-label">总访问次数</div>
+                </div>
+            </div>
+            <div v-else class="loading">加载中...</div>
+        </div>
+
+        <!-- 密钥管理 -->
+        <div class="card" v-if="workerConfigured">
+            <h2>🔑 API 密钥管理</h2>
+            
+            <div class="input-group">
+                <label>密钥名称</label>
+                <input v-model="newKeyName" placeholder="例如：团队共享密钥" />
+            </div>
+            <button class="button" @click="createKey" :disabled="!newKeyName.trim()">
+                创建新密钥
+            </button>
+
+            <div v-if="loading.keys" class="loading">加载中...</div>
+            <div v-else-if="keys.length === 0" class="empty-state">
+                暂无密钥，点击上方按钮创建
+            </div>
+            <div v-else style="margin-top: 1.5rem;">
+                <div v-for="key in keys" :key="key.key_id" class="key-item">
+                    <div class="key-item-header">
+                        <div>
+                            <div class="key-name">{{ key.key_name }}</div>
+                            <div class="key-id">ID: {{ key.key_id }}</div>
+                        </div>
+                        <button class="button danger" @click="deleteKey(key.key_id)">
+                            删除
+                        </button>
+                    </div>
+                    <div class="key-info">
+                        创建时间: {{ formatDate(key.created_at) }} | 
+                        使用次数: {{ key.usage_count }} | 
+                        权限: {{ key.permissions }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页面管理 -->
+        <div class="card" v-if="workerConfigured">
+            <h2>📄 已部署页面</h2>
+            
+            <div v-if="loading.pages" class="loading">加载中...</div>
+            <div v-else-if="pages.length === 0" class="empty-state">
+                暂无页面，使用 AI 调用插件创建第一个页面
+            </div>
+            <div v-else>
+                <div v-for="page in pages" :key="page.page_id" class="page-item">
+                    <div class="page-item-header">
+                        <div>
+                            <div class="page-title">{{ page.title }}</div>
+                            <div class="page-id">{{ page.description }}</div>
+                        </div>
+                        <div class="button-group">
+                            <button class="button" @click="openPage(page.page_id)">
+                                访问
+                            </button>
+                            <button class="button danger" @click="deletePage(page.page_id)">
+                                删除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="page-info">
+                        ID: {{ page.page_id }} | 
+                        创建: {{ formatDate(page.created_at) }} | 
+                        访问: {{ page.access_count }}次
+                        <span v-if="page.expires_at"> | 过期: {{ formatDate(page.expires_at) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast 提示 -->
+        <div v-if="toast.show" class="toast" :class="toast.type">
+            {{ toast.message }}
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    workerUrl: '',
+                    adminKey: '',
+                    workerConfigured: false,
+                    healthStatus: { text: '检查中...', class: 'warning' },
+                    stats: null,
+                    keys: [],
+                    pages: [],
+                    newKeyName: '',
+                    generatedKey: { key: '', hash: '' },
+                    loading: {
+                        keys: false,
+                        pages: false,
+                    },
+                    toast: {
+                        show: false,
+                        type: 'success',
+                        message: '',
+                    },
+                };
+            },
+            mounted() {
+                this.checkHealth();
+                this.loadConfig();
+            },
+            methods: {
+                async checkHealth() {
+                    try {
+                        const response = await fetch('/plugins/nekro_plugin_webapp/health');
+                        const data = await response.json();
+                        
+                        if (data.status === 'healthy') {
+                            this.healthStatus = { text: '✅ Worker 运行正常', class: 'healthy' };
+                            this.workerConfigured = true;
+                            
+                            // 自动获取 Worker URL 和密钥
+                            if (data.worker_url) {
+                                this.workerUrl = data.worker_url;
+                            }
+                            
+                            // 注意：管理员密钥不会通过 API 传输，需要用户在页面上手动输入
+                            // 或者从浏览器本地存储加载
+                            const storedKey = localStorage.getItem('webapp_admin_key');
+                            if (storedKey) {
+                                this.adminKey = storedKey;
+                            }
+                            
+                            this.loadData();
+                        } else if (data.status === 'not_configured') {
+                            this.healthStatus = { text: '⚠️ 未配置 Worker', class: 'warning' };
+                        } else {
+                            this.healthStatus = { text: '❌ Worker 无法访问', class: 'error' };
+                        }
+                    } catch (error) {
+                        this.healthStatus = { text: '❌ 检查失败', class: 'error' };
+                    }
+                },
+                async loadData() {
+                    await Promise.all([
+                        this.loadStats(),
+                        this.loadKeys(),
+                        this.loadPages(),
+                    ]);
+                },
+                async loadConfig() {
+                    // 配置在 checkHealth() 中已经加载
+                },
+                saveAdminKey() {
+                    if (this.adminKey && this.adminKey.trim()) {
+                        localStorage.setItem('webapp_admin_key', this.adminKey);
+                        this.showToast('管理员密钥已保存到浏览器', 'success');
+                        this.loadData();
+                    }
+                },
+                async loadStats() {
+                    if (!this.workerUrl || !this.adminKey) return;
+                    
+                    try {
+                        const response = await fetch(`${this.workerUrl}/admin/stats`, {
+                            headers: {
+                                'Authorization': `Bearer ${this.adminKey}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            this.stats = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('Failed to load stats:', error);
+                    }
+                },
+                async loadKeys() {
+                    if (!this.workerUrl || !this.adminKey) return;
+                    
+                    this.loading.keys = true;
+                    try {
+                        const response = await fetch(`${this.workerUrl}/admin/keys`, {
+                            headers: {
+                                'Authorization': `Bearer ${this.adminKey}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            this.keys = await response.json();
+                        } else {
+                            throw new Error('Failed to load keys');
+                        }
+                    } catch (error) {
+                        console.error('Failed to load keys:', error);
+                        this.showToast('加载密钥失败', 'error');
+                    } finally {
+                        this.loading.keys = false;
+                    }
+                },
+                async loadPages() {
+                    if (!this.workerUrl || !this.adminKey) return;
+                    
+                    this.loading.pages = true;
+                    try {
+                        const response = await fetch(`${this.workerUrl}/admin/pages`, {
+                            headers: {
+                                'Authorization': `Bearer ${this.adminKey}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            this.pages = await response.json();
+                        } else {
+                            throw new Error('Failed to load pages');
+                        }
+                    } catch (error) {
+                        console.error('Failed to load pages:', error);
+                        this.showToast('加载页面失败', 'error');
+                    } finally {
+                        this.loading.pages = false;
+                    }
+                },
+                async generateAdminKey() {
+                    // 生成随机密钥
+                    const array = new Uint8Array(32);
+                    crypto.getRandomValues(array);
+                    const key = btoa(String.fromCharCode.apply(null, array))
+                        .replace(/\+/g, '-')
+                        .replace(/\//g, '_')
+                        .replace(/=/g, '');
+                    
+                    // 计算 SHA-256
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(key);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    
+                    this.generatedKey = { key, hash };
+                },
+                async createKey() {
+                    if (!this.newKeyName.trim()) {
+                        this.showToast('请输入密钥名称', 'error');
+                        return;
+                    }
+                    
+                    if (!this.workerUrl || !this.adminKey) {
+                        this.showToast('未配置 Worker', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch(`${this.workerUrl}/admin/keys`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.adminKey}`
+                            },
+                            body: JSON.stringify({
+                                key_name: this.newKeyName
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.showToast('密钥创建成功', 'success');
+                            this.newKeyName = '';
+                            
+                            // 显示新创建的密钥（仅此一次）
+                            alert(`新密钥创建成功！\n\n密钥（仅显示一次，请保存）：\n${data.api_key}\n\n密钥ID：${data.key_id}`);
+                            
+                            await this.loadKeys();
+                        } else {
+                            const error = await response.json();
+                            throw new Error(error.error || '创建失败');
+                        }
+                    } catch (error) {
+                        console.error('Failed to create key:', error);
+                        this.showToast('创建密钥失败: ' + error.message, 'error');
+                    }
+                },
+                async deleteKey(keyId) {
+                    if (!confirm('确定要删除这个密钥吗？删除后将无法恢复。')) return;
+                    
+                    if (!this.workerUrl || !this.adminKey) return;
+                    
+                    try {
+                        const response = await fetch(`${this.workerUrl}/admin/keys/${keyId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${this.adminKey}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            this.showToast('密钥已删除', 'success');
+                            await this.loadKeys();
+                        } else {
+                            throw new Error('删除失败');
+                        }
+                    } catch (error) {
+                        console.error('Failed to delete key:', error);
+                        this.showToast('删除密钥失败', 'error');
+                    }
+                },
+                async deletePage(pageId) {
+                    if (!confirm('确定要删除这个页面吗？删除后访问链接将失效。')) return;
+                    
+                    if (!this.workerUrl || !this.adminKey) return;
+                    
+                    try {
+                        const response = await fetch(`${this.workerUrl}/api/pages/${pageId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${this.adminKey}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            this.showToast('页面已删除', 'success');
+                            await this.loadPages();
+                            await this.loadStats();
+                        } else {
+                            throw new Error('删除失败');
+                        }
+                    } catch (error) {
+                        console.error('Failed to delete page:', error);
+                        this.showToast('删除页面失败', 'error');
+                    }
+                },
+                openPage(pageId) {
+                    if (!this.workerUrl) {
+                        this.showToast('Worker URL 未配置', 'error');
+                        return;
+                    }
+                    // 在新标签页打开页面
+                    const url = `${this.workerUrl}/${pageId}`;
+                    window.open(url, '_blank');
+                },
+                async copyToClipboard(text) {
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        this.showToast('已复制到剪贴板', 'success');
+                    } catch (error) {
+                        this.showToast('复制失败', 'error');
+                    }
+                },
+                formatDate(timestamp) {
+                    if (!timestamp) return '-';
+                    const date = new Date(timestamp);
+                    return date.toLocaleString('zh-CN');
+                },
+                showToast(message, type = 'success') {
+                    this.toast = { show: true, message, type };
+                    setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3000);
+                },
+            },
+        }).mount('#app');
+    </script>
+</body>
+</html>
+

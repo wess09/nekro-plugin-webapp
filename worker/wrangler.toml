@@ -1,0 +1,26 @@
+# Cloudflare Worker 配置文件
+
+name = "webapp-deploy"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Worker 类型
+workers_dev = true
+
+# D1 数据库绑定
+# Cloudflare 会在连接 GitHub 时自动创建数据库
+[[d1_databases]]
+binding = "DB"
+database_name = "webapp-db"
+# database_id 会在首次部署时自动填充
+
+# 环境变量
+[vars]
+# 初始管理员密钥哈希（首次部署后应该在 Dashboard 中更改）
+# 默认密钥: "admin-change-me-immediately"
+# 对应哈希: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+ADMIN_KEY_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+
+# 数据库初始化标志（Worker 首次运行时自动初始化）
+DB_INITIALIZED = "false"
+
