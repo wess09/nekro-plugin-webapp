@@ -42,7 +42,7 @@
    - **Production branch**: `main`
    - **Build settings**: 
      - **Framework preset**: 无（None）
-     - **Build command**: `npx wrangler deploy`
+     - **Build command**: `pnpm run build` ⚠️ **重要！这会自动创建数据库**
      - **Build output directory**: 留空
      - **Root directory (根目录)**: `/worker` ⚠️ **重要！必须填 `/worker`**
 8. 点击 **Save and Deploy**

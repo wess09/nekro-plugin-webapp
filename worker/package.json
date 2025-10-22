@@ -7,9 +7,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
-    "db:create": "wrangler d1 create webapp-db",
-    "db:init": "wrangler d1 execute webapp-db --file=schema.sql",
-    "db:query": "wrangler d1 execute webapp-db --command"
+    "setup": "node setup.js",
+    "build": "pnpm run setup && wrangler deploy"
   },
   "keywords": [
     "cloudflare",
