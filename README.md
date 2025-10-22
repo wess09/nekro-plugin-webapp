@@ -45,10 +45,10 @@
 1. 在你 fork 的 GitHub 仓库中，打开 `worker/wrangler.toml` 文件
 2. 找到 [[d1_databases]] 部分：
    ```toml
-   database_id = "2fc7f7a6-3370-4430-9093-e907cb68f761"  # 请替换为你的 Database ID
+   database_id = "1469ae3f-62bd-448e-833c-b39703e0b953"  # 请替换为你的 Database ID
    ```
 3. 点击编辑（铅笔图标）
-4. **将 `2fc7f7a6-3370-4430-9093-e907cb68f761` 替换为你刚才复制的 Database ID**
+4. **将 `1469ae3f-62bd-448e-833c-b39703e0b953` 替换为你刚才复制的 Database ID**
 5. 提交更改（Commit changes）
 
 ✅ **检查点**：`wrangler.toml` 中已填写你的 Database ID
