@@ -8,17 +8,23 @@ import { Env } from './types';
  * 数据库 Schema SQL
  */
 const SCHEMA_SQL = `
--- API Keys 表
+-- Settings 表（存储系统配置，包括管理密钥）
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+-- API Keys 表（简化版 - 明文存储）
 CREATE TABLE IF NOT EXISTS api_keys (
     key_id TEXT PRIMARY KEY,
-    key_hash TEXT NOT NULL,
+    api_key TEXT NOT NULL UNIQUE,
     key_name TEXT NOT NULL,
     created_by TEXT,
     created_at INTEGER NOT NULL,
     expires_at INTEGER,
     is_active INTEGER DEFAULT 1,
     usage_count INTEGER DEFAULT 0,
-    max_pages INTEGER DEFAULT 100,
     permissions TEXT DEFAULT 'create,view',
     metadata TEXT
 );
@@ -52,7 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_pages_created_by ON pages(created_by);
 CREATE INDEX IF NOT EXISTS idx_pages_expires_at ON pages(expires_at);
 CREATE INDEX IF NOT EXISTS idx_pages_is_active ON pages(is_active);
 CREATE INDEX IF NOT EXISTS idx_api_keys_is_active ON api_keys(is_active);
-CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
+CREATE INDEX IF NOT EXISTS idx_api_keys_api_key ON api_keys(api_key);
 `;
 
 /**

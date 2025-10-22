@@ -2,13 +2,11 @@
 
 from pathlib import Path
 
-import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
 from nekro_agent.core import logger
 
-from .models import WorkerHealthResponse
 from .plugin import config, plugin
 
 
@@ -31,40 +29,12 @@ def create_router() -> APIRouter:
             logger.exception("读取管理界面失败")
             raise HTTPException(500, f"读取管理界面失败: {e}") from e
 
-    @router.get("/health", summary="健康检查")
+    @router.get("/health", summary="获取 Worker 配置")
     async def health_check() -> dict:
-        """检查 Worker 是否正常运行"""
-        if not config.WORKER_URL:
-            return {
-                "status": "not_configured",
-                "message": "Worker 未配置，请在插件配置中设置 WORKER_URL",
-            }
-
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get(f"{config.WORKER_URL.rstrip('/')}/api/health")
-                response.raise_for_status()
-
-                worker_health = WorkerHealthResponse.model_validate(response.json())
-                return {
-                    "status": "healthy",
-                    "worker_status": worker_health.status,
-                    "worker_timestamp": worker_health.timestamp,
-                    "worker_url": config.WORKER_URL,
-                    "initialized": worker_health.initialized,
-                    "message": "Worker 运行正常",
-                }
-        except httpx.HTTPError as e:
-            logger.error(f"Worker 健康检查失败: {e}")
-            return {
-                "status": "error",
-                "message": f"Worker 无法访问: {e!s}",
-            }
-        except Exception as e:
-            logger.exception("健康检查出错")
-            return {
-                "status": "error",
-                "message": f"检查出错: {e!s}",
-            }
+        """返回 Worker URL 配置，供前端使用"""
+        return {
+            "status": "ok",
+            "worker_url": config.WORKER_URL,
+        }
 
     return router

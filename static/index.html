@@ -737,20 +737,26 @@
                 async checkSystemStatus() {
                     this.loading = true;
                     try {
-                        // 获取 Worker URL
-                        const healthResponse = await fetch('/plugins/KroMiose.nekro_plugin_webapp/health');
-                        if (healthResponse.ok) {
-                            const healthData = await healthResponse.json();
-                            this.workerUrl = healthData.worker_url || '';
+                        // 第一步：从插件后端获取 Worker URL
+                        const pluginHealthResponse = await fetch('/plugins/KroMiose.nekro_plugin_webapp/health');
+                        if (!pluginHealthResponse.ok) {
+                            console.error('无法获取插件配置');
+                            return;
+                        }
+                        
+                        const pluginHealthData = await pluginHealthResponse.json();
+                        this.workerUrl = pluginHealthData.worker_url || '';
+                        
+                        if (!this.workerUrl) {
+                            console.error('Worker URL 未配置');
+                            return;
                         }
 
-                        // 检查系统是否已初始化
-                        if (this.workerUrl) {
-                            const statusResponse = await fetch(`${this.workerUrl}/api/health`);
-                            if (statusResponse.ok) {
-                                const statusData = await statusResponse.json();
-                                this.systemInitialized = statusData.initialized || false;
-                            }
+                        // 第二步：直接访问 Worker 检查是否已初始化
+                        const workerHealthResponse = await fetch(`${this.workerUrl}/api/health`);
+                        if (workerHealthResponse.ok) {
+                            const workerHealthData = await workerHealthResponse.json();
+                            this.systemInitialized = workerHealthData.initialized || false;
                         }
 
                         // 如果已初始化且有密钥，加载数据
