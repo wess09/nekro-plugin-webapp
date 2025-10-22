@@ -125,34 +125,20 @@ class WebAppConfig(ConfigBase):
     ACCESS_KEY: str = Field(
         default="",
         title="访问密钥",
-        description="AI 调用时使用的密钥（留空则使用管理员密钥）",
+        description="用于创建页面的访问密钥（需在管理界面创建）",
         json_schema_extra={"is_secret": True},
-    )
-
-    PAGE_EXPIRE_DAYS: int = Field(
-        default=30,
-        title="页面过期天数",
-        description="创建的页面默认保留天数（0=永久保留）",
-        ge=0,
-        le=365,
-    )
-
-    MAX_HTML_SIZE: int = Field(
-        default=500,
-        title="HTML 最大大小(KB)",
-        description="单个 HTML 文件的最大大小限制",
-        ge=10,
-        le=2000,
     )
 ```
 
 **配置说明**：
 
 - `WORKER_URL`: Worker 部署后的访问地址，必填
-- `ADMIN_API_KEY`: 管理员密钥，拥有所有权限
-- `ACCESS_KEY`: 访问密钥，用于创建页面
-- `PAGE_EXPIRE_DAYS`: 页面自动过期时间，0 表示永久保留
-- `MAX_HTML_SIZE`: 防止上传过大文件导致滥用
+- `ACCESS_KEY`: 访问密钥，用于创建页面（在 Worker 管理界面创建）
+
+**页面配置**（在 Worker 管理界面"系统配置"中设置）：
+
+- **页面过期天数**：页面自动过期时间，0 表示永久保留（默认 30 天）
+- **HTML 最大大小**：单个 HTML 文件的最大大小限制（默认 500 KB）
 
 #### 1.2 数据模型 (models.py)
 
@@ -229,31 +215,22 @@ async def create_web_app(
     if not description.strip():
         raise ValueError("页面描述不能为空")
 
-    # 2. 验证 HTML 大小
-    html_size_kb = len(html_content.encode('utf-8')) / 1024
-    if html_size_kb > config.MAX_HTML_SIZE:
-        raise ValueError(
-            f"HTML 内容过大 ({html_size_kb:.1f}KB)，"
-            f"最大允许 {config.MAX_HTML_SIZE}KB"
-        )
-
-    # 3. 验证配置
+    # 2. 验证配置
     if not config.WORKER_URL:
         raise ValueError("未配置 Worker 地址，请先在插件配置中设置 WORKER_URL")
 
     api_key = config.ACCESS_KEY
     if not api_key:
-        raise ValueError("未配置 API 密钥，请先在插件配置中设置密钥")
+        raise ValueError("未配置访问密钥，请先在管理界面创建访问密钥并填写到 ACCESS_KEY 配置中")
 
-    # 4. 构造请求
+    # 3. 构造请求（不指定过期天数，使用 Worker 端配置的默认值）
     request_data = CreatePageRequest(
         title=title.strip(),
         description=description.strip(),
         html_content=html_content,
-        expires_in_days=config.PAGE_EXPIRE_DAYS,
     )
 
-    # 5. 调用 Worker API
+    # 4. 调用 Worker API
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(

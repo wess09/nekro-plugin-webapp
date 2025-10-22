@@ -32,22 +32,6 @@ class WebAppConfig(ConfigBase):
         json_schema_extra={"is_secret": True},
     )
 
-    PAGE_EXPIRE_DAYS: int = Field(
-        default=30,
-        title="页面过期天数",
-        description="创建的页面默认保留天数（0=永久保留）",
-        ge=0,
-        le=365,
-    )
-
-    MAX_HTML_SIZE: int = Field(
-        default=500,
-        title="HTML 最大大小(KB)",
-        description="单个 HTML 文件的最大大小限制",
-        ge=10,
-        le=2000,
-    )
-
 
 # 获取配置实例
 config: WebAppConfig = plugin.get_config(WebAppConfig)

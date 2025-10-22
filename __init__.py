@@ -64,14 +64,7 @@ async def create_web_app(
     if not html_content or not html_content.strip():
         raise ValueError("HTML 内容不能为空")
 
-    # 2. 验证 HTML 大小
-    html_size_kb = len(html_content.encode("utf-8")) / 1024
-    if html_size_kb > config.MAX_HTML_SIZE:
-        raise ValueError(
-            f"HTML 内容过大 ({html_size_kb:.1f}KB)，最大允许 {config.MAX_HTML_SIZE}KB",
-        )
-
-    # 3. 验证配置
+    # 2. 验证配置
     if not config.WORKER_URL:
         raise ValueError("未配置 Worker 地址，请先在插件配置中设置 WORKER_URL")
 
@@ -79,15 +72,14 @@ async def create_web_app(
     if not api_key:
         raise ValueError("未配置访问密钥，请先在管理界面创建访问密钥并填写到 ACCESS_KEY 配置中")
 
-    # 4. 构造请求
+    # 3. 构造请求（不指定过期天数，使用 Worker 端配置的默认值）
     request_data = CreatePageRequest(
         title=title.strip(),
         description=description.strip(),
         html_content=html_content,
-        expires_in_days=config.PAGE_EXPIRE_DAYS,
     )
 
-    # 5. 调用 Worker API
+    # 4. 调用 Worker API
     try:
         logger.info(f"正在部署网页: {title}")
 

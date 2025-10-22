@@ -456,8 +456,10 @@ export async function incrementAccessCount(pageId: string, env: Env): Promise<vo
 
 ### 推荐配置
 
-| 场景 | PAGE_EXPIRE_DAYS | MAX_HTML_SIZE |
-|------|------------------|---------------|
+**在 Worker 管理界面"系统配置"中设置**：
+
+| 场景 | 页面过期天数 | HTML 最大大小 |
+|------|-------------|--------------|
 | 临时展示 | 7 天 | 300 KB |
 | 一般使用 | 30 天 | 500 KB |
 | 长期保存 | 0（永久） | 500 KB |
