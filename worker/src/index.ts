@@ -4,7 +4,7 @@
 
 import { Env, CreatePageRequest, CreatePageResponse } from './types';
 import { validateApiKey, hasPermission, generateApiKey } from './auth';
-import { createPage, getPage, incrementAccessCount, deletePage, listPages, createApiKey, listApiKeys, deleteApiKey, getStats, getAdminKey, setAdminKey } from './storage';
+import { createPage, getPage, incrementAccessCount, deletePage, listPages, createApiKey, listApiKeys, deleteApiKey, getStats, getAdminKey, setAdminKey, getSetting, setSetting } from './storage';
 import { ensureDatabaseInitialized } from './init';
 
 /**
@@ -153,6 +153,19 @@ async function handleAPI(request: Request, env: Env, path: string): Promise<Resp
 				return errorResponse('HTML 内容不能为空');
 			}
 
+			// 获取配置的大小限制
+			const maxHtmlSizeStr = (await getSetting('max_html_size', env)) || '500';
+			const maxHtmlSize = parseInt(maxHtmlSizeStr) * 1024; // KB 转字节
+			if (body.html_content.length > maxHtmlSize) {
+				return errorResponse(`HTML 内容过大，最大允许 ${maxHtmlSizeStr} KB`);
+			}
+
+			// 如果未指定过期天数，使用配置的默认值
+			if (!body.expires_in_days) {
+				const defaultExpireDays = (await getSetting('page_expire_days', env)) || '30';
+				body.expires_in_days = parseInt(defaultExpireDays);
+			}
+
 			const page = await createPage(body, auth.keyId!, env);
 
 			const response: CreatePageResponse = {
@@ -265,6 +278,19 @@ async function handleAdmin(request: Request, env: Env, path: string): Promise<Re
 		return jsonResponse({ message: '删除成功' });
 	}
 
+	// DELETE /admin/pages/{id} - 删除页面
+	const pageIdMatch = path.match(/^\/admin\/pages\/([a-zA-Z0-9-]+)$/);
+	if (pageIdMatch && request.method === 'DELETE') {
+		const pageId = pageIdMatch[1];
+		const success = await deletePage(pageId, env);
+
+		if (!success) {
+			return errorResponse('删除失败', 500);
+		}
+
+		return jsonResponse({ message: '删除成功' });
+	}
+
 	// GET /admin/stats - 获取统计信息
 	if (path === '/admin/stats' && request.method === 'GET') {
 		const stats = await getStats(env);
@@ -294,6 +320,42 @@ async function handleAdmin(request: Request, env: Env, path: string): Promise<Re
 			return jsonResponse({ message: '管理密钥修改成功' });
 		} catch (e: any) {
 			return errorResponse(e.message || '修改失败', 500);
+		}
+	}
+
+	// GET /admin/settings - 获取系统配置
+	if (path === '/admin/settings' && request.method === 'GET') {
+		const pageExpireDays = (await getSetting('page_expire_days', env)) || '30';
+		const maxHtmlSize = (await getSetting('max_html_size', env)) || '500';
+		
+		return jsonResponse({
+			page_expire_days: parseInt(pageExpireDays),
+			max_html_size: parseInt(maxHtmlSize),
+		});
+	}
+
+	// PUT /admin/settings - 更新系统配置
+	if (path === '/admin/settings' && request.method === 'PUT') {
+		try {
+			const body = (await request.json()) as { page_expire_days?: number; max_html_size?: number };
+			
+			if (body.page_expire_days !== undefined) {
+				if (body.page_expire_days < 0) {
+					return errorResponse('页面过期天数不能为负数', 400);
+				}
+				await setSetting('page_expire_days', String(body.page_expire_days), env);
+			}
+			
+			if (body.max_html_size !== undefined) {
+				if (body.max_html_size <= 0) {
+					return errorResponse('HTML 最大大小必须大于 0', 400);
+				}
+				await setSetting('max_html_size', String(body.max_html_size), env);
+			}
+			
+			return jsonResponse({ message: '配置更新成功' });
+		} catch (e: any) {
+			return errorResponse(e.message || '更新失败', 500);
 		}
 	}
 
@@ -365,118 +427,309 @@ const WELCOME_PAGE_HTML = `
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebApp 快速部署服务</title>
+    <title>WebApp 快速部署服务 - AI 驱动的静态网页托管平台</title>
+    <meta name="description" content="基于 Cloudflare Workers 的轻量级 HTML 托管服务，由 NekroAgent AI 智能体快速部署网页。支持全球 CDN 加速、API 接口、密钥认证保护。">
+    <meta name="keywords" content="HTML托管,静态网页部署,Cloudflare Workers,AI部署,NekroAgent,网页托管,CDN加速">
+    <meta property="og:title" content="WebApp 快速部署服务">
+    <meta property="og:description" content="AI 驱动的静态网页快速部署平台，基于 Cloudflare Workers">
+    <meta property="og:type" content="website">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --primary-light: #d1fae5;
+            --bg-main: #f9fafb;
+            --bg-card: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--primary);
             color: white;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
+            padding: 3rem 1rem;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .header p {
+            font-size: 1.125rem;
+            opacity: 0.95;
         }
         .container {
-            max-width: 800px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
         }
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 1rem;
-        }
-        .subtitle {
-            font-size: 1.2em;
-            opacity: 0.9;
-            margin-bottom: 2rem;
-        }
-        .section {
-            margin: 2rem 0;
-        }
-        .section h2 {
-            font-size: 1.5em;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
-            padding-bottom: 0.5rem;
-        }
-        .api-endpoint {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            margin: 0.5rem 0;
-            font-family: 'Courier New', monospace;
-        }
-        .status {
+        .status-badge {
             display: inline-block;
-            padding: 0.3rem 0.8rem;
-            background: rgba(76, 175, 80, 0.3);
+            padding: 0.5rem 1rem;
+            background: var(--primary-light);
+            color: var(--primary-dark);
             border-radius: 20px;
-            font-size: 0.9em;
+            font-size: 0.875rem;
+            font-weight: 600;
             margin-top: 1rem;
         }
-        ul {
-            margin-left: 2rem;
-            margin-top: 0.5rem;
+        .section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
         }
-        li {
+        .section h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .feature-card {
+            padding: 1.5rem;
+            background: var(--bg-main);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .feature-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        .feature-card p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        .api-list {
+            margin-top: 1rem;
+        }
+        .api-item {
+            background: var(--bg-main);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
             margin: 0.5rem 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            border: 1px solid var(--border);
         }
-        a {
-            color: #ffd700;
+        .api-method {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+        .link-section {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-main);
+        }
+        .footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        .footer a {
+            color: var(--primary);
             text-decoration: none;
         }
-        a:hover {
+        .footer a:hover {
             text-decoration: underline;
+        }
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            .features {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="header">
         <h1>🚀 WebApp 快速部署服务</h1>
-        <div class="subtitle">基于 Cloudflare Workers 的 HTML 托管服务</div>
-        
-        <div class="status">✅ 服务运行正常</div>
-        
+        <p>AI 驱动的静态网页快速部署平台 · 基于 Cloudflare Workers</p>
+        <div class="status-badge">✅ 服务运行正常</div>
+    </div>
+
+    <div class="container">
         <div class="section">
-            <h2>📝 服务说明</h2>
-            <p>这是一个 WebApp 快速部署服务，可以将 HTML 内容部署为在线可访问的网页。</p>
-            <ul>
-                <li>支持 HTML、CSS、JavaScript</li>
-                <li>全球 CDN 加速</li>
-                <li>简单的 API 接口</li>
-                <li>密钥认证保护</li>
+            <h2>🌟 关于本服务</h2>
+            <p>
+                WebApp 快速部署服务是一个基于 <strong>Cloudflare Workers</strong> 的轻量级 HTML 托管平台，
+                由 <strong>NekroAgent</strong> AI 智能体驱动，能够快速将 HTML 内容部署为在线可访问的网页。
+            </p>
+            <p>
+                本服务完全开源免费，任何人都可以在几分钟内部署自己的实例，无需服务器，无需域名，
+                依托 Cloudflare 的全球 CDN 网络实现超快访问速度。
+            </p>
+            <div class="features">
+                <div class="feature-card">
+                    <h3>⚡ 全球加速</h3>
+                    <p>依托 Cloudflare CDN，全球 300+ 节点加速访问</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🤖 AI 驱动</h3>
+                    <p>与 NekroAgent 深度集成，AI 自动生成和部署网页</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🔒 安全可靠</h3>
+                    <p>API 密钥认证，支持权限管理和访问控制</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💰 完全免费</h3>
+                    <p>开源项目，免费使用 Cloudflare 免费套餐即可</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔗 项目生态</h2>
+            <p>
+                本服务是 <strong>NekroAgent</strong> 生态的重要组成部分：
+            </p>
+            <ul style="margin-left: 2rem; color: var(--text-secondary);">
+                <li style="margin: 0.5rem 0;"><strong>NekroAgent</strong> - 开源的 AI 智能体框架，让 AI 能够执行复杂任务</li>
+                <li style="margin: 0.5rem 0;"><strong>nekro-plugin-webapp</strong> - 本插件，为 NekroAgent 提供快速部署网页的能力</li>
             </ul>
+            <div class="link-section">
+                <a href="https://github.com/KroMiose/nekro-agent" class="btn" target="_blank" rel="noopener">
+                    📦 NekroAgent 仓库
+                </a>
+                <a href="https://github.com/KroMiose/nekro-agent/tree/main/data/nekro_agent/plugins/workdir/nekro-plugin-webapp" class="btn btn-secondary" target="_blank" rel="noopener">
+                    🔌 插件文档
+                </a>
+            </div>
         </div>
-        
+
         <div class="section">
-            <h2>🔌 API 端点</h2>
-            <div class="api-endpoint">GET /api/health - 健康检查</div>
-            <div class="api-endpoint">POST /api/pages - 创建页面（需要认证）</div>
-            <div class="api-endpoint">GET /api/pages/{id} - 获取页面信息</div>
-            <div class="api-endpoint">DELETE /api/pages/{id} - 删除页面（需要认证）</div>
+            <h2>🔌 API 接口</h2>
+            <p>本服务提供以下 RESTful API 接口：</p>
+            <div class="api-list">
+                <div class="api-item">
+                    <span class="api-method">GET</span>
+                    <code>/api/health</code> - 健康检查
+                </div>
+                <div class="api-item">
+                    <span class="api-method">POST</span>
+                    <code>/api/pages</code> - 创建页面（需要认证）
+                </div>
+                <div class="api-item">
+                    <span class="api-method">GET</span>
+                    <code>/api/pages/{id}</code> - 获取页面信息
+                </div>
+                <div class="api-item">
+                    <span class="api-method">DELETE</span>
+                    <code>/api/pages/{id}</code> - 删除页面（需要认证）
+                </div>
+            </div>
         </div>
-        
+
         <div class="section">
-            <h2>🔧 管理端点</h2>
-            <div class="api-endpoint">GET /admin/pages - 列出所有页面（需要管理员权限）</div>
-            <div class="api-endpoint">POST /admin/keys - 创建 API 密钥（需要管理员权限）</div>
-            <div class="api-endpoint">GET /admin/keys - 列出所有密钥（需要管理员权限）</div>
-            <div class="api-endpoint">GET /admin/stats - 获取统计信息（需要管理员权限）</div>
+            <h2>🚀 快速开始</h2>
+            <ol style="margin-left: 2rem; color: var(--text-secondary);">
+                <li style="margin: 0.75rem 0;"><strong>部署服务：</strong>参考插件文档，将本服务部署到 Cloudflare Workers</li>
+                <li style="margin: 0.75rem 0;"><strong>安装插件：</strong>在 NekroAgent 中安装 nekro-plugin-webapp 插件</li>
+                <li style="margin: 0.75rem 0;"><strong>配置密钥：</strong>在管理界面创建 API 密钥，配置到插件中</li>
+                <li style="margin: 0.75rem 0;"><strong>开始使用：</strong>让 AI 帮你创建和部署网页！</li>
+            </ol>
         </div>
-        
+
         <div class="section">
-            <h2>📖 文档</h2>
-            <p>详细使用文档和部署指南请参考项目仓库。</p>
+            <h2>💡 使用场景</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <h3>📊 数据可视化</h3>
+                    <p>快速生成图表和数据展示页面</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📝 内容发布</h3>
+                    <p>生成文章、报告等内容页面</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎨 原型设计</h3>
+                    <p>快速创建 UI 原型和演示页面</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📱 临时页面</h3>
+                    <p>活动页面、问卷调查等临时需求</p>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <div class="footer">
+        <p>
+            由 <a href="https://github.com/KroMiose" target="_blank" rel="noopener">KroMiose</a> 开发维护 · 
+            基于 <a href="https://github.com/KroMiose/nekro-agent" target="_blank" rel="noopener">NekroAgent</a> 生态 · 
+            开源协议：MIT License
+        </p>
+        <p style="margin-top: 0.5rem;">
+            ⭐ 觉得有用？请在 <a href="https://github.com/KroMiose/nekro-agent" target="_blank" rel="noopener">GitHub</a> 上给我们一个 Star！
+        </p>
     </div>
 </body>
 </html>

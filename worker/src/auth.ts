@@ -21,7 +21,7 @@ export async function validateApiKey(authorization: string | null, env: Env): Pr
 		return {
 			valid: true,
 			keyId: 'admin',
-			permissions: ['create', 'view', 'delete', 'manage'],
+			permissions: ['view', 'delete', 'manage'],  // 管理密钥不包含 create 权限
 		};
 	}
 

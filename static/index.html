@@ -506,6 +506,10 @@
                     </button>
                 </div>
 
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <strong>提示：</strong>创建 API 密钥后，将其配置到 NekroAgent 插件的 <code style="background: rgba(0,0,0,0.1); padding: 0.125rem 0.375rem; border-radius: 3px;">ACCESS_KEY</code> 参数中，即可使用该密钥创建页面
+                </div>
+
                 <div v-if="loadingKeys" class="loading">
                     <div class="spinner"></div>
                     <p>加载中...</p>
@@ -617,7 +621,38 @@
                     <strong>Worker 地址：</strong>{{ workerUrl }}
                 </div>
 
-                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+                <div class="config-card" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary);">
+                            📋 系统配置
+                        </h3>
+                        <button class="btn btn-primary btn-sm" @click="openSettingsModal">
+                            ✏️ 编辑配置
+                        </button>
+                    </div>
+                    <table style="width: 100%; font-size: 0.875rem;">
+                        <tbody>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.75rem 0; font-weight: 500; color: var(--text-primary); width: 200px;">
+                                    页面过期天数
+                                </td>
+                                <td style="padding: 0.75rem 0; color: var(--text-secondary);">
+                                    {{ settings.page_expire_days }} 天{{ settings.page_expire_days === 0 ? '（永久保留）' : '' }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 0.75rem 0; font-weight: 500; color: var(--text-primary);">
+                                    HTML 最大大小
+                                </td>
+                                <td style="padding: 0.75rem 0; color: var(--text-secondary);">
+                                    {{ settings.max_html_size }} KB
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                     <button class="btn btn-secondary btn-sm" @click="showChangePasswordModal = true">
                         🔑 修改管理密钥
                     </button>
@@ -704,6 +739,54 @@
                 </div>
             </div>
         </div>
+
+        <!-- 配置编辑 Modal -->
+        <div class="modal-overlay" v-if="showSettingsModal" @click.self="closeSettingsModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">编辑系统配置</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">页面过期天数（0 = 永久保留）</label>
+                        <input 
+                            type="number" 
+                            class="form-input" 
+                            v-model.number="tempSettings.page_expire_days"
+                            placeholder="30"
+                            min="0"
+                        >
+                        <p style="color: var(--text-secondary); font-size: 0.813rem; margin-top: 0.5rem;">
+                            设置页面的默认过期时间，0 表示永久保留
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">HTML 最大大小（KB）</label>
+                        <input 
+                            type="number" 
+                            class="form-input" 
+                            v-model.number="tempSettings.max_html_size"
+                            placeholder="500"
+                            min="1"
+                        >
+                        <p style="color: var(--text-secondary); font-size: 0.813rem; margin-top: 0.5rem;">
+                            限制单个页面的 HTML 内容大小
+                        </p>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>提示：</strong>配置修改后会立即生效，影响后续创建的所有页面
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @click="closeSettingsModal">
+                        取消
+                    </button>
+                    <button class="btn btn-primary btn-sm" @click="saveSettings">
+                        保存配置
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -728,6 +811,9 @@
                     showChangePasswordModal: false,
                     oldPassword: '',
                     newPassword: '',
+                    settings: { page_expire_days: 30, max_html_size: 500 },
+                    showSettingsModal: false,
+                    tempSettings: { page_expire_days: 30, max_html_size: 500 },
                 };
             },
             async mounted() {
@@ -825,7 +911,8 @@
                     await Promise.all([
                         this.loadStats(),
                         this.loadKeys(),
-                        this.loadPages()
+                        this.loadPages(),
+                        this.loadSettings()
                     ]);
                 },
                 async loadStats() {
@@ -995,6 +1082,50 @@
                     this.showChangePasswordModal = false;
                     this.oldPassword = '';
                     this.newPassword = '';
+                },
+                async loadSettings() {
+                    if (!this.workerUrl || !this.adminKey) return;
+                    try {
+                        const response = await fetch(`${this.workerUrl}/admin/settings`, {
+                            headers: { Authorization: `Bearer ${this.adminKey}` }
+                        });
+                        if (response.ok) {
+                            this.settings = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('加载配置失败:', error);
+                    }
+                },
+                openSettingsModal() {
+                    this.tempSettings = { ...this.settings };
+                    this.showSettingsModal = true;
+                },
+                closeSettingsModal() {
+                    this.showSettingsModal = false;
+                },
+                async saveSettings() {
+                    try {
+                        const response = await fetch(`${this.workerUrl}/admin/settings`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${this.adminKey}`
+                            },
+                            body: JSON.stringify(this.tempSettings)
+                        });
+
+                        if (response.ok) {
+                            alert('配置保存成功！');
+                            this.settings = { ...this.tempSettings };
+                            this.closeSettingsModal();
+                        } else {
+                            const error = await response.json();
+                            alert('保存失败：' + (error.error || '未知错误'));
+                        }
+                    } catch (error) {
+                        console.error('保存配置失败:', error);
+                        alert('保存失败：' + error.message);
+                    }
                 },
                 copyKey(key) {
                     navigator.clipboard.writeText(key).then(() => {

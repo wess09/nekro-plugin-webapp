@@ -25,10 +25,10 @@ class WebAppConfig(ConfigBase):
         description="Cloudflare Worker 的完整 URL (如: https://your-worker.workers.dev)",
     )
 
-    DEFAULT_SHARE_KEY: str = Field(
+    ACCESS_KEY: str = Field(
         default="",
-        title="默认共享密钥",
-        description="AI 调用时使用的密钥（留空则使用管理员密钥）",
+        title="访问密钥",
+        description="用于创建页面的访问密钥（需在管理界面创建）",
         json_schema_extra={"is_secret": True},
     )
 

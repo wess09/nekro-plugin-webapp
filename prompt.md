@@ -7,7 +7,7 @@
 ### 核心功能
 
 1. **AI 调用接口**：提供 `create_web_app` 沙盒方法，AI 可直接调用部署网页
-2. **密钥管理系统**：支持管理员密钥和共享密钥，方便多用户使用和分享
+2. **密钥管理系统**：支持管理密钥和访问密钥，权限分离设计更安全
 3. **Web 管理界面**：提供可视化的密钥和页面管理界面
 4. **Cloudflare Workers 托管**：利用 Cloudflare 的全球 CDN 和 D1 数据库
 
@@ -16,7 +16,7 @@
 - **简单易用**：AI 只需提供 HTML、标题和描述即可部署
 - **傻瓜化部署**：提供一键部署脚本和详细指南
 - **安全可控**：密钥系统保护 API，内容大小限制防止滥用
-- **可分享**：支持生成共享密钥，让其他用户无需部署即可使用
+- **可分享**：支持生成访问密钥，让其他用户无需部署即可使用
 
 ## 技术架构
 
@@ -69,16 +69,19 @@
 ### 技术栈
 
 **插件端 (Python)**
+
 - NekroAgent Plugin API
 - httpx (HTTP 客户端)
 - Pydantic (数据验证)
 
 **Worker 端 (TypeScript)**
+
 - Cloudflare Workers
 - D1 Database (SQLite-based)
 - Wrangler CLI (部署工具)
 
 **管理界面 (前端)**
+
 - 单文件 Vue.js 3 (CDN 引入)
 - 原生 JavaScript
 - 响应式 CSS
@@ -105,27 +108,27 @@ plugin = NekroPlugin(
 @plugin.mount_config()
 class WebAppConfig(ConfigBase):
     """WebApp 部署配置"""
-    
+
     WORKER_URL: str = Field(
         default="",
         title="Worker 访问地址",
         description="Cloudflare Worker 的完整 URL (如: https://your-worker.workers.dev)",
     )
-    
+
     ADMIN_API_KEY: str = Field(
         default="",
         title="管理员密钥",
         description="Worker 管理员密钥，用于管理操作",
         json_schema_extra={"is_secret": True},
     )
-    
-    DEFAULT_SHARE_KEY: str = Field(
+
+    ACCESS_KEY: str = Field(
         default="",
-        title="默认共享密钥",
+        title="访问密钥",
         description="AI 调用时使用的密钥（留空则使用管理员密钥）",
         json_schema_extra={"is_secret": True},
     )
-    
+
     PAGE_EXPIRE_DAYS: int = Field(
         default=30,
         title="页面过期天数",
@@ -133,7 +136,7 @@ class WebAppConfig(ConfigBase):
         ge=0,
         le=365,
     )
-    
+
     MAX_HTML_SIZE: int = Field(
         default=500,
         title="HTML 最大大小(KB)",
@@ -144,9 +147,10 @@ class WebAppConfig(ConfigBase):
 ```
 
 **配置说明**：
+
 - `WORKER_URL`: Worker 部署后的访问地址，必填
 - `ADMIN_API_KEY`: 管理员密钥，拥有所有权限
-- `DEFAULT_SHARE_KEY`: 共享密钥，可分享给其他用户
+- `ACCESS_KEY`: 访问密钥，用于创建页面
 - `PAGE_EXPIRE_DAYS`: 页面自动过期时间，0 表示永久保留
 - `MAX_HTML_SIZE`: 防止上传过大文件导致滥用
 
@@ -193,11 +197,12 @@ class ApiKeyInfo(BaseModel):
 ```
 
 **模型说明**：
+
 - 使用 Pydantic 进行数据验证
 - 标题和描述设置为必填，符合用户需求
 - 所有时间戳使用 Unix 时间戳（整数）
 
-#### 1.3 核心沙盒方法 (__init__.py)
+#### 1.3 核心沙盒方法 (**init**.py)
 
 ```python
 @plugin.mount_sandbox_method(SandboxMethodType.TOOL, "创建网页应用")
@@ -208,22 +213,22 @@ async def create_web_app(
     description: str,
 ) -> str:
     """将 HTML 内容部署为在线可访问的网页
-    
+
     Args:
         html_content: 完整的 HTML 内容，包括 CSS 和 JavaScript
         title: 页面标题（必填，用于标识和管理）
         description: 页面描述（必填，说明页面用途）
-        
+
     Returns:
         str: 可访问的网页 URL 和相关信息
     """
-    
+
     # 1. 验证参数
     if not title.strip():
         raise ValueError("页面标题不能为空")
     if not description.strip():
         raise ValueError("页面描述不能为空")
-    
+
     # 2. 验证 HTML 大小
     html_size_kb = len(html_content.encode('utf-8')) / 1024
     if html_size_kb > config.MAX_HTML_SIZE:
@@ -231,15 +236,15 @@ async def create_web_app(
             f"HTML 内容过大 ({html_size_kb:.1f}KB)，"
             f"最大允许 {config.MAX_HTML_SIZE}KB"
         )
-    
+
     # 3. 验证配置
     if not config.WORKER_URL:
         raise ValueError("未配置 Worker 地址，请先在插件配置中设置 WORKER_URL")
-    
-    api_key = config.DEFAULT_SHARE_KEY or config.ADMIN_API_KEY
+
+    api_key = config.ACCESS_KEY
     if not api_key:
         raise ValueError("未配置 API 密钥，请先在插件配置中设置密钥")
-    
+
     # 4. 构造请求
     request_data = CreatePageRequest(
         title=title.strip(),
@@ -247,7 +252,7 @@ async def create_web_app(
         html_content=html_content,
         expires_in_days=config.PAGE_EXPIRE_DAYS,
     )
-    
+
     # 5. 调用 Worker API
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -257,19 +262,23 @@ async def create_web_app(
                 headers={"Authorization": f"Bearer {api_key}"},
             )
             response.raise_for_status()
-            
+
             result = CreatePageResponse.model_validate(response.json())
-            
+
             # 6. 返回友好的结果信息
+            # JavaScript Date.now() 返回毫秒级时间戳，需要除以 1000 转换为秒
+            created_time = datetime.fromtimestamp(result.created_at / 1000).strftime('%Y-%m-%d %H:%M:%S')
+            expires_info = f"📅 过期时间: {datetime.fromtimestamp(result.expires_at / 1000).strftime('%Y-%m-%d %H:%M:%S')}" if result.expires_at else "♾️  永久保留"
+
             return (
                 f"✅ 网页部署成功！\n"
                 f"📄 标题: {result.title}\n"
                 f"🔗 访问链接: {result.url}\n"
                 f"🆔 页面ID: {result.page_id}\n"
-                f"⏰ 创建时间: {datetime.fromtimestamp(result.created_at).strftime('%Y-%m-%d %H:%M:%S')}\n"
-                f"{'📅 过期时间: ' + datetime.fromtimestamp(result.expires_at).strftime('%Y-%m-%d %H:%M:%S') if result.expires_at else '♾️  永久保留'}"
+                f"⏰ 创建时间: {created_time}\n"
+                f"{expires_info}"
             )
-            
+
     except httpx.HTTPStatusError as e:
         error_detail = e.response.text
         raise Exception(f"部署失败: {error_detail}")
@@ -278,6 +287,7 @@ async def create_web_app(
 ```
 
 **实现要点**：
+
 - 严格的参数验证（标题和描述必填）
 - HTML 大小限制检查
 - 配置完整性检查
@@ -293,7 +303,7 @@ from pathlib import Path
 
 def create_router() -> APIRouter:
     router = APIRouter()
-    
+
     @router.get("/", response_class=HTMLResponse)
     async def index():
         """返回管理界面"""
@@ -301,13 +311,13 @@ def create_router() -> APIRouter:
         if not static_path.exists():
             raise HTTPException(404, "管理界面未找到")
         return HTMLResponse(static_path.read_text(encoding="utf-8"))
-    
+
     @router.get("/health")
     async def health_check():
         """健康检查"""
         if not config.WORKER_URL:
             return {"status": "not_configured", "message": "Worker 未配置"}
-        
+
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.get(
@@ -317,7 +327,7 @@ def create_router() -> APIRouter:
                 return {"status": "healthy", "worker": response.json()}
         except Exception as e:
             return {"status": "error", "message": str(e)}
-    
+
     return router
 ```
 
@@ -327,616 +337,641 @@ def create_router() -> APIRouter:
 
 ```typescript
 export interface Env {
-    DB: D1Database;
-    ADMIN_KEY_HASH: string;
+  DB: D1Database;
+  ADMIN_KEY_HASH: string;
 }
 
 export interface ApiKey {
-    key_id: string;
-    key_hash: string;
-    key_name: string;
-    created_by: string | null;
-    created_at: number;
-    expires_at: number | null;
-    is_active: number;
-    usage_count: number;
-    max_pages: number;
-    permissions: string;
-    metadata: string | null;
+  key_id: string;
+  key_hash: string;
+  key_name: string;
+  created_by: string | null;
+  created_at: number;
+  expires_at: number | null;
+  is_active: number;
+  usage_count: number;
+  max_pages: number;
+  permissions: string;
+  metadata: string | null;
 }
 
 export interface Page {
-    page_id: string;
-    title: string;
-    description: string;
-    html_content: string;
-    created_by: string;
-    created_at: number;
-    expires_at: number | null;
-    access_count: number;
-    last_accessed: number | null;
-    is_active: number;
-    metadata: string | null;
+  page_id: string;
+  title: string;
+  description: string;
+  html_content: string;
+  created_by: string;
+  created_at: number;
+  expires_at: number | null;
+  access_count: number;
+  last_accessed: number | null;
+  is_active: number;
+  metadata: string | null;
 }
 
 export interface CreatePageRequest {
-    title: string;
-    description: string;
-    html_content: string;
-    expires_in_days?: number;
+  title: string;
+  description: string;
+  html_content: string;
+  expires_in_days?: number;
 }
 
 export interface CreatePageResponse {
-    page_id: string;
-    url: string;
-    title: string;
-    created_at: number;
-    expires_at: number | null;
+  page_id: string;
+  url: string;
+  title: string;
+  created_at: number;
+  expires_at: number | null;
 }
 ```
 
 #### 2.2 密钥验证 (worker/src/auth.ts)
 
 ```typescript
-import { Env, ApiKey } from './types';
+import { Env, ApiKey } from "./types";
 
 /**
  * 计算字符串的 SHA-256 哈希
  */
 async function sha256(message: string): Promise<string> {
-    const msgBuffer = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /**
  * 验证 API 密钥
  */
 export async function validateApiKey(
-    authorization: string | null,
-    env: Env
+  authorization: string | null,
+  env: Env
 ): Promise<{ valid: boolean; keyId?: string; permissions?: string[] }> {
-    
-    if (!authorization || !authorization.startsWith('Bearer ')) {
-        return { valid: false };
-    }
-    
-    const apiKey = authorization.substring(7);
-    const keyHash = await sha256(apiKey);
-    
-    // 检查是否是管理员密钥
-    if (keyHash === env.ADMIN_KEY_HASH) {
-        return {
-            valid: true,
-            keyId: 'admin',
-            permissions: ['create', 'view', 'delete', 'manage']
-        };
-    }
-    
-    // 检查数据库中的密钥
-    const result = await env.DB
-        .prepare('SELECT * FROM api_keys WHERE key_hash = ? AND is_active = 1')
-        .bind(keyHash)
-        .first<ApiKey>();
-    
-    if (!result) {
-        return { valid: false };
-    }
-    
-    // 检查是否过期
-    if (result.expires_at && result.expires_at < Date.now()) {
-        return { valid: false };
-    }
-    
-    // 更新使用次数
-    await env.DB
-        .prepare('UPDATE api_keys SET usage_count = usage_count + 1 WHERE key_id = ?')
-        .bind(result.key_id)
-        .run();
-    
+  if (!authorization || !authorization.startsWith("Bearer ")) {
+    return { valid: false };
+  }
+
+  const apiKey = authorization.substring(7);
+  const keyHash = await sha256(apiKey);
+
+  // 检查是否是管理员密钥
+  if (keyHash === env.ADMIN_KEY_HASH) {
     return {
-        valid: true,
-        keyId: result.key_id,
-        permissions: result.permissions.split(',')
+      valid: true,
+      keyId: "admin",
+      permissions: ["create", "view", "delete", "manage"],
     };
+  }
+
+  // 检查数据库中的密钥
+  const result = await env.DB.prepare(
+    "SELECT * FROM api_keys WHERE key_hash = ? AND is_active = 1"
+  )
+    .bind(keyHash)
+    .first<ApiKey>();
+
+  if (!result) {
+    return { valid: false };
+  }
+
+  // 检查是否过期
+  if (result.expires_at && result.expires_at < Date.now()) {
+    return { valid: false };
+  }
+
+  // 更新使用次数
+  await env.DB.prepare(
+    "UPDATE api_keys SET usage_count = usage_count + 1 WHERE key_id = ?"
+  )
+    .bind(result.key_id)
+    .run();
+
+  return {
+    valid: true,
+    keyId: result.key_id,
+    permissions: result.permissions.split(","),
+  };
 }
 
 /**
  * 检查权限
  */
-export function hasPermission(permissions: string[], required: string): boolean {
-    return permissions.includes(required) || permissions.includes('manage');
+export function hasPermission(
+  permissions: string[],
+  required: string
+): boolean {
+  return permissions.includes(required) || permissions.includes("manage");
 }
 ```
 
 #### 2.3 数据库操作 (worker/src/storage.ts)
 
 ```typescript
-import { Env, Page, ApiKey, CreatePageRequest } from './types';
+import { Env, Page, ApiKey, CreatePageRequest } from "./types";
 
 /**
  * 生成唯一的页面 ID
  */
 function generatePageId(): string {
-    return crypto.randomUUID().substring(0, 8);
+  return crypto.randomUUID().substring(0, 8);
 }
 
 /**
  * 创建页面
  */
 export async function createPage(
-    request: CreatePageRequest,
-    createdBy: string,
-    env: Env
+  request: CreatePageRequest,
+  createdBy: string,
+  env: Env
 ): Promise<Page> {
-    
-    const now = Date.now();
-    const pageId = generatePageId();
-    const expiresAt = request.expires_in_days && request.expires_in_days > 0
-        ? now + request.expires_in_days * 24 * 60 * 60 * 1000
-        : null;
-    
-    await env.DB
-        .prepare(`
+  const now = Date.now();
+  const pageId = generatePageId();
+  const expiresAt =
+    request.expires_in_days && request.expires_in_days > 0
+      ? now + request.expires_in_days * 24 * 60 * 60 * 1000
+      : null;
+
+  await env.DB.prepare(
+    `
             INSERT INTO pages (
                 page_id, title, description, html_content,
                 created_by, created_at, expires_at, is_active
             ) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-        `)
-        .bind(
-            pageId,
-            request.title,
-            request.description,
-            request.html_content,
-            createdBy,
-            now,
-            expiresAt
-        )
-        .run();
-    
-    return {
-        page_id: pageId,
-        title: request.title,
-        description: request.description,
-        html_content: request.html_content,
-        created_by: createdBy,
-        created_at: now,
-        expires_at: expiresAt,
-        access_count: 0,
-        last_accessed: null,
-        is_active: 1,
-        metadata: null
-    };
+        `
+  )
+    .bind(
+      pageId,
+      request.title,
+      request.description,
+      request.html_content,
+      createdBy,
+      now,
+      expiresAt
+    )
+    .run();
+
+  return {
+    page_id: pageId,
+    title: request.title,
+    description: request.description,
+    html_content: request.html_content,
+    created_by: createdBy,
+    created_at: now,
+    expires_at: expiresAt,
+    access_count: 0,
+    last_accessed: null,
+    is_active: 1,
+    metadata: null,
+  };
 }
 
 /**
  * 获取页面
  */
 export async function getPage(pageId: string, env: Env): Promise<Page | null> {
-    const result = await env.DB
-        .prepare('SELECT * FROM pages WHERE page_id = ? AND is_active = 1')
-        .bind(pageId)
-        .first<Page>();
-    
-    if (!result) {
-        return null;
-    }
-    
-    // 检查是否过期
-    if (result.expires_at && result.expires_at < Date.now()) {
-        return null;
-    }
-    
-    return result;
+  const result = await env.DB.prepare(
+    "SELECT * FROM pages WHERE page_id = ? AND is_active = 1"
+  )
+    .bind(pageId)
+    .first<Page>();
+
+  if (!result) {
+    return null;
+  }
+
+  // 检查是否过期
+  if (result.expires_at && result.expires_at < Date.now()) {
+    return null;
+  }
+
+  return result;
 }
 
 /**
  * 更新访问计数
  */
-export async function incrementAccessCount(pageId: string, env: Env): Promise<void> {
-    await env.DB
-        .prepare(`
+export async function incrementAccessCount(
+  pageId: string,
+  env: Env
+): Promise<void> {
+  await env.DB.prepare(
+    `
             UPDATE pages 
             SET access_count = access_count + 1, last_accessed = ?
             WHERE page_id = ?
-        `)
-        .bind(Date.now(), pageId)
-        .run();
+        `
+  )
+    .bind(Date.now(), pageId)
+    .run();
 }
 
 /**
  * 删除页面
  */
 export async function deletePage(pageId: string, env: Env): Promise<boolean> {
-    const result = await env.DB
-        .prepare('UPDATE pages SET is_active = 0 WHERE page_id = ?')
-        .bind(pageId)
-        .run();
-    
-    return result.success;
+  const result = await env.DB.prepare(
+    "UPDATE pages SET is_active = 0 WHERE page_id = ?"
+  )
+    .bind(pageId)
+    .run();
+
+  return result.success;
 }
 
 /**
  * 列出所有页面
  */
-export async function listPages(env: Env, limit: number = 100): Promise<Page[]> {
-    const result = await env.DB
-        .prepare(`
+export async function listPages(
+  env: Env,
+  limit: number = 100
+): Promise<Page[]> {
+  const result = await env.DB.prepare(
+    `
             SELECT * FROM pages 
             WHERE is_active = 1 
             ORDER BY created_at DESC 
             LIMIT ?
-        `)
-        .bind(limit)
-        .all<Page>();
-    
-    return result.results || [];
+        `
+  )
+    .bind(limit)
+    .all<Page>();
+
+  return result.results || [];
 }
 
 /**
  * 创建 API 密钥
  */
 export async function createApiKey(
-    keyName: string,
-    apiKey: string,
-    keyHash: string,
-    createdBy: string,
-    env: Env
+  keyName: string,
+  apiKey: string,
+  keyHash: string,
+  createdBy: string,
+  env: Env
 ): Promise<ApiKey> {
-    
-    const now = Date.now();
-    const keyId = crypto.randomUUID().substring(0, 12);
-    
-    await env.DB
-        .prepare(`
+  const now = Date.now();
+  const keyId = crypto.randomUUID().substring(0, 12);
+
+  await env.DB.prepare(
+    `
             INSERT INTO api_keys (
                 key_id, key_hash, key_name, created_by,
                 created_at, is_active, max_pages, permissions
             ) VALUES (?, ?, ?, ?, ?, 1, 100, 'create,view')
-        `)
-        .bind(keyId, keyHash, keyName, createdBy, now)
-        .run();
-    
-    return {
-        key_id: keyId,
-        key_hash: keyHash,
-        key_name: keyName,
-        created_by: createdBy,
-        created_at: now,
-        expires_at: null,
-        is_active: 1,
-        usage_count: 0,
-        max_pages: 100,
-        permissions: 'create,view',
-        metadata: null
-    };
+        `
+  )
+    .bind(keyId, keyHash, keyName, createdBy, now)
+    .run();
+
+  return {
+    key_id: keyId,
+    key_hash: keyHash,
+    key_name: keyName,
+    created_by: createdBy,
+    created_at: now,
+    expires_at: null,
+    is_active: 1,
+    usage_count: 0,
+    max_pages: 100,
+    permissions: "create,view",
+    metadata: null,
+  };
 }
 
 /**
  * 列出所有 API 密钥
  */
 export async function listApiKeys(env: Env): Promise<ApiKey[]> {
-    const result = await env.DB
-        .prepare('SELECT * FROM api_keys WHERE is_active = 1 ORDER BY created_at DESC')
-        .all<ApiKey>();
-    
-    return result.results || [];
+  const result = await env.DB.prepare(
+    "SELECT * FROM api_keys WHERE is_active = 1 ORDER BY created_at DESC"
+  ).all<ApiKey>();
+
+  return result.results || [];
 }
 
 /**
  * 删除 API 密钥
  */
 export async function deleteApiKey(keyId: string, env: Env): Promise<boolean> {
-    const result = await env.DB
-        .prepare('UPDATE api_keys SET is_active = 0 WHERE key_id = ?')
-        .bind(keyId)
-        .run();
-    
-    return result.success;
+  const result = await env.DB.prepare(
+    "UPDATE api_keys SET is_active = 0 WHERE key_id = ?"
+  )
+    .bind(keyId)
+    .run();
+
+  return result.success;
 }
 
 /**
  * 获取统计信息
  */
 export async function getStats(env: Env): Promise<any> {
-    const pagesCount = await env.DB
-        .prepare('SELECT COUNT(*) as count FROM pages WHERE is_active = 1')
-        .first<{ count: number }>();
-    
-    const keysCount = await env.DB
-        .prepare('SELECT COUNT(*) as count FROM api_keys WHERE is_active = 1')
-        .first<{ count: number }>();
-    
-    const totalAccess = await env.DB
-        .prepare('SELECT SUM(access_count) as total FROM pages WHERE is_active = 1')
-        .first<{ total: number }>();
-    
-    return {
-        pages_count: pagesCount?.count || 0,
-        keys_count: keysCount?.count || 0,
-        total_access: totalAccess?.total || 0
-    };
+  const pagesCount = await env.DB.prepare(
+    "SELECT COUNT(*) as count FROM pages WHERE is_active = 1"
+  ).first<{ count: number }>();
+
+  const keysCount = await env.DB.prepare(
+    "SELECT COUNT(*) as count FROM api_keys WHERE is_active = 1"
+  ).first<{ count: number }>();
+
+  const totalAccess = await env.DB.prepare(
+    "SELECT SUM(access_count) as total FROM pages WHERE is_active = 1"
+  ).first<{ total: number }>();
+
+  return {
+    pages_count: pagesCount?.count || 0,
+    keys_count: keysCount?.count || 0,
+    total_access: totalAccess?.total || 0,
+  };
 }
 ```
 
 #### 2.4 主入口 (worker/src/index.ts)
 
 ```typescript
-import { Env, CreatePageRequest, CreatePageResponse } from './types';
-import { validateApiKey, hasPermission } from './auth';
+import { Env, CreatePageRequest, CreatePageResponse } from "./types";
+import { validateApiKey, hasPermission } from "./auth";
 import {
-    createPage,
-    getPage,
-    incrementAccessCount,
-    deletePage,
-    listPages,
-    createApiKey,
-    listApiKeys,
-    deleteApiKey,
-    getStats
-} from './storage';
+  createPage,
+  getPage,
+  incrementAccessCount,
+  deletePage,
+  listPages,
+  createApiKey,
+  listApiKeys,
+  deleteApiKey,
+  getStats,
+} from "./storage";
 
 /**
  * CORS 响应头
  */
 function corsHeaders() {
-    return {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    };
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
 }
 
 /**
  * JSON 响应
  */
 function jsonResponse(data: any, status: number = 200) {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders()
-        }
-    });
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      ...corsHeaders(),
+    },
+  });
 }
 
 /**
  * 错误响应
  */
 function errorResponse(message: string, status: number = 400) {
-    return jsonResponse({ error: message }, status);
+  return jsonResponse({ error: message }, status);
 }
 
 /**
  * HTML 响应
  */
 function htmlResponse(html: string) {
-    return new Response(html, {
-        headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-            ...corsHeaders()
-        }
-    });
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      ...corsHeaders(),
+    },
+  });
 }
 
 export default {
-    async fetch(request: Request, env: Env): Promise<Response> {
-        const url = new URL(request.url);
-        const path = url.pathname;
-        
-        // OPTIONS 请求处理（CORS 预检）
-        if (request.method === 'OPTIONS') {
-            return new Response(null, { headers: corsHeaders() });
-        }
-        
-        // API 路由
-        if (path.startsWith('/api/')) {
-            return handleAPI(request, env, path);
-        }
-        
-        // 管理路由
-        if (path.startsWith('/admin/')) {
-            return handleAdmin(request, env, path);
-        }
-        
-        // 根路径 - 返回管理界面
-        if (path === '/' || path === '/index.html') {
-            return htmlResponse(MANAGEMENT_UI_HTML);
-        }
-        
-        // 页面访问 /{page_id}
-        const pageId = path.substring(1);
-        if (pageId) {
-            return servePage(pageId, env);
-        }
-        
-        return errorResponse('Not Found', 404);
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // OPTIONS 请求处理（CORS 预检）
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders() });
     }
+
+    // API 路由
+    if (path.startsWith("/api/")) {
+      return handleAPI(request, env, path);
+    }
+
+    // 管理路由
+    if (path.startsWith("/admin/")) {
+      return handleAdmin(request, env, path);
+    }
+
+    // 根路径 - 返回管理界面
+    if (path === "/" || path === "/index.html") {
+      return htmlResponse(MANAGEMENT_UI_HTML);
+    }
+
+    // 页面访问 /{page_id}
+    const pageId = path.substring(1);
+    if (pageId) {
+      return servePage(pageId, env);
+    }
+
+    return errorResponse("Not Found", 404);
+  },
 };
 
 /**
  * 处理 API 请求
  */
-async function handleAPI(request: Request, env: Env, path: string): Promise<Response> {
-    
-    // 健康检查
-    if (path === '/api/health') {
-        return jsonResponse({ status: 'healthy', timestamp: Date.now() });
+async function handleAPI(
+  request: Request,
+  env: Env,
+  path: string
+): Promise<Response> {
+  // 健康检查
+  if (path === "/api/health") {
+    return jsonResponse({ status: "healthy", timestamp: Date.now() });
+  }
+
+  // 验证 API 密钥
+  const auth = await validateApiKey(request.headers.get("Authorization"), env);
+  if (!auth.valid) {
+    return errorResponse("Unauthorized", 401);
+  }
+
+  // POST /api/pages - 创建页面
+  if (path === "/api/pages" && request.method === "POST") {
+    if (!hasPermission(auth.permissions!, "create")) {
+      return errorResponse("Forbidden", 403);
     }
-    
-    // 验证 API 密钥
-    const auth = await validateApiKey(request.headers.get('Authorization'), env);
-    if (!auth.valid) {
-        return errorResponse('Unauthorized', 401);
+
+    try {
+      const body = (await request.json()) as CreatePageRequest;
+
+      // 验证必填字段
+      if (!body.title || !body.title.trim()) {
+        return errorResponse("标题不能为空");
+      }
+      if (!body.description || !body.description.trim()) {
+        return errorResponse("描述不能为空");
+      }
+      if (!body.html_content || !body.html_content.trim()) {
+        return errorResponse("HTML 内容不能为空");
+      }
+
+      const page = await createPage(body, auth.keyId!, env);
+
+      const response: CreatePageResponse = {
+        page_id: page.page_id,
+        url: `${new URL(request.url).origin}/${page.page_id}`,
+        title: page.title,
+        created_at: page.created_at,
+        expires_at: page.expires_at,
+      };
+
+      return jsonResponse(response, 201);
+    } catch (e: any) {
+      return errorResponse(e.message || "创建页面失败", 500);
     }
-    
-    // POST /api/pages - 创建页面
-    if (path === '/api/pages' && request.method === 'POST') {
-        if (!hasPermission(auth.permissions!, 'create')) {
-            return errorResponse('Forbidden', 403);
-        }
-        
-        try {
-            const body = await request.json() as CreatePageRequest;
-            
-            // 验证必填字段
-            if (!body.title || !body.title.trim()) {
-                return errorResponse('标题不能为空');
-            }
-            if (!body.description || !body.description.trim()) {
-                return errorResponse('描述不能为空');
-            }
-            if (!body.html_content || !body.html_content.trim()) {
-                return errorResponse('HTML 内容不能为空');
-            }
-            
-            const page = await createPage(body, auth.keyId!, env);
-            
-            const response: CreatePageResponse = {
-                page_id: page.page_id,
-                url: `${new URL(request.url).origin}/${page.page_id}`,
-                title: page.title,
-                created_at: page.created_at,
-                expires_at: page.expires_at
-            };
-            
-            return jsonResponse(response, 201);
-        } catch (e: any) {
-            return errorResponse(e.message || '创建页面失败', 500);
-        }
+  }
+
+  // GET /api/pages/{id} - 获取页面信息
+  const pageIdMatch = path.match(/^\/api\/pages\/([a-zA-Z0-9-]+)$/);
+  if (pageIdMatch && request.method === "GET") {
+    const pageId = pageIdMatch[1];
+    const page = await getPage(pageId, env);
+
+    if (!page) {
+      return errorResponse("页面不存在或已过期", 404);
     }
-    
-    // GET /api/pages/{id} - 获取页面信息
-    const pageIdMatch = path.match(/^\/api\/pages\/([a-zA-Z0-9-]+)$/);
-    if (pageIdMatch && request.method === 'GET') {
-        const pageId = pageIdMatch[1];
-        const page = await getPage(pageId, env);
-        
-        if (!page) {
-            return errorResponse('页面不存在或已过期', 404);
-        }
-        
-        // 不返回 HTML 内容，只返回元数据
-        return jsonResponse({
-            page_id: page.page_id,
-            title: page.title,
-            description: page.description,
-            created_at: page.created_at,
-            expires_at: page.expires_at,
-            access_count: page.access_count
-        });
+
+    // 不返回 HTML 内容，只返回元数据
+    return jsonResponse({
+      page_id: page.page_id,
+      title: page.title,
+      description: page.description,
+      created_at: page.created_at,
+      expires_at: page.expires_at,
+      access_count: page.access_count,
+    });
+  }
+
+  // DELETE /api/pages/{id} - 删除页面
+  if (pageIdMatch && request.method === "DELETE") {
+    if (!hasPermission(auth.permissions!, "delete")) {
+      return errorResponse("Forbidden", 403);
     }
-    
-    // DELETE /api/pages/{id} - 删除页面
-    if (pageIdMatch && request.method === 'DELETE') {
-        if (!hasPermission(auth.permissions!, 'delete')) {
-            return errorResponse('Forbidden', 403);
-        }
-        
-        const pageId = pageIdMatch[1];
-        const success = await deletePage(pageId, env);
-        
-        if (!success) {
-            return errorResponse('删除失败', 500);
-        }
-        
-        return jsonResponse({ message: '删除成功' });
+
+    const pageId = pageIdMatch[1];
+    const success = await deletePage(pageId, env);
+
+    if (!success) {
+      return errorResponse("删除失败", 500);
     }
-    
-    return errorResponse('Not Found', 404);
+
+    return jsonResponse({ message: "删除成功" });
+  }
+
+  return errorResponse("Not Found", 404);
 }
 
 /**
  * 处理管理请求
  */
-async function handleAdmin(request: Request, env: Env, path: string): Promise<Response> {
-    
-    // 验证管理员权限
-    const auth = await validateApiKey(request.headers.get('Authorization'), env);
-    if (!auth.valid || !hasPermission(auth.permissions!, 'manage')) {
-        return errorResponse('Unauthorized', 401);
+async function handleAdmin(
+  request: Request,
+  env: Env,
+  path: string
+): Promise<Response> {
+  // 验证管理员权限
+  const auth = await validateApiKey(request.headers.get("Authorization"), env);
+  if (!auth.valid || !hasPermission(auth.permissions!, "manage")) {
+    return errorResponse("Unauthorized", 401);
+  }
+
+  // GET /admin/pages - 列出所有页面
+  if (path === "/admin/pages" && request.method === "GET") {
+    const pages = await listPages(env);
+    return jsonResponse(pages);
+  }
+
+  // POST /admin/keys - 创建新密钥
+  if (path === "/admin/keys" && request.method === "POST") {
+    try {
+      const body = (await request.json()) as { key_name: string };
+
+      if (!body.key_name || !body.key_name.trim()) {
+        return errorResponse("密钥名称不能为空");
+      }
+
+      // 生成新密钥
+      const newKey = crypto.randomUUID();
+      const keyHash = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(newKey)
+      );
+      const keyHashHex = Array.from(new Uint8Array(keyHash))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+
+      const apiKey = await createApiKey(
+        body.key_name,
+        newKey,
+        keyHashHex,
+        auth.keyId!,
+        env
+      );
+
+      // 返回密钥原文（仅此一次）
+      return jsonResponse(
+        {
+          ...apiKey,
+          api_key: newKey, // 原始密钥，仅显示一次
+        },
+        201
+      );
+    } catch (e: any) {
+      return errorResponse(e.message || "创建密钥失败", 500);
     }
-    
-    // GET /admin/pages - 列出所有页面
-    if (path === '/admin/pages' && request.method === 'GET') {
-        const pages = await listPages(env);
-        return jsonResponse(pages);
+  }
+
+  // GET /admin/keys - 列出所有密钥
+  if (path === "/admin/keys" && request.method === "GET") {
+    const keys = await listApiKeys(env);
+    return jsonResponse(keys);
+  }
+
+  // DELETE /admin/keys/{id} - 删除密钥
+  const keyIdMatch = path.match(/^\/admin\/keys\/([a-zA-Z0-9-]+)$/);
+  if (keyIdMatch && request.method === "DELETE") {
+    const keyId = keyIdMatch[1];
+    const success = await deleteApiKey(keyId, env);
+
+    if (!success) {
+      return errorResponse("删除失败", 500);
     }
-    
-    // POST /admin/keys - 创建新密钥
-    if (path === '/admin/keys' && request.method === 'POST') {
-        try {
-            const body = await request.json() as { key_name: string };
-            
-            if (!body.key_name || !body.key_name.trim()) {
-                return errorResponse('密钥名称不能为空');
-            }
-            
-            // 生成新密钥
-            const newKey = crypto.randomUUID();
-            const keyHash = await crypto.subtle.digest(
-                'SHA-256',
-                new TextEncoder().encode(newKey)
-            );
-            const keyHashHex = Array.from(new Uint8Array(keyHash))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('');
-            
-            const apiKey = await createApiKey(
-                body.key_name,
-                newKey,
-                keyHashHex,
-                auth.keyId!,
-                env
-            );
-            
-            // 返回密钥原文（仅此一次）
-            return jsonResponse({
-                ...apiKey,
-                api_key: newKey  // 原始密钥，仅显示一次
-            }, 201);
-        } catch (e: any) {
-            return errorResponse(e.message || '创建密钥失败', 500);
-        }
-    }
-    
-    // GET /admin/keys - 列出所有密钥
-    if (path === '/admin/keys' && request.method === 'GET') {
-        const keys = await listApiKeys(env);
-        return jsonResponse(keys);
-    }
-    
-    // DELETE /admin/keys/{id} - 删除密钥
-    const keyIdMatch = path.match(/^\/admin\/keys\/([a-zA-Z0-9-]+)$/);
-    if (keyIdMatch && request.method === 'DELETE') {
-        const keyId = keyIdMatch[1];
-        const success = await deleteApiKey(keyId, env);
-        
-        if (!success) {
-            return errorResponse('删除失败', 500);
-        }
-        
-        return jsonResponse({ message: '删除成功' });
-    }
-    
-    // GET /admin/stats - 获取统计信息
-    if (path === '/admin/stats' && request.method === 'GET') {
-        const stats = await getStats(env);
-        return jsonResponse(stats);
-    }
-    
-    return errorResponse('Not Found', 404);
+
+    return jsonResponse({ message: "删除成功" });
+  }
+
+  // GET /admin/stats - 获取统计信息
+  if (path === "/admin/stats" && request.method === "GET") {
+    const stats = await getStats(env);
+    return jsonResponse(stats);
+  }
+
+  return errorResponse("Not Found", 404);
 }
 
 /**
  * 提供页面服务
  */
 async function servePage(pageId: string, env: Env): Promise<Response> {
-    const page = await getPage(pageId, env);
-    
-    if (!page) {
-        return htmlResponse(`
+  const page = await getPage(pageId, env);
+
+  if (!page) {
+    return htmlResponse(`
             <!DOCTYPE html>
             <html>
             <head>
@@ -970,12 +1005,12 @@ async function servePage(pageId: string, env: Env): Promise<Response> {
             </body>
             </html>
         `);
-    }
-    
-    // 更新访问计数
-    await incrementAccessCount(pageId, env);
-    
-    return htmlResponse(page.html_content);
+  }
+
+  // 更新访问计数
+  await incrementAccessCount(pageId, env);
+
+  return htmlResponse(page.html_content);
 }
 
 // 管理界面 HTML（将在后面定义）
@@ -1027,11 +1062,13 @@ const MANAGEMENT_UI_HTML = `<!-- 管理界面将在 static/index.html 中定义 
 #### 3.3 密钥类型和权限
 
 **管理员密钥**：
+
 - 权限：`create`, `view`, `delete`, `manage`
 - 用途：完全管理权限
 - 配置：在 `wrangler.toml` 中设置环境变量
 
-**共享密钥**：
+**访问密钥**：
+
 - 权限：`create`, `view`
 - 用途：只能创建和查看页面
 - 特点：可分享给其他用户使用
@@ -1041,23 +1078,27 @@ const MANAGEMENT_UI_HTML = `<!-- 管理界面将在 static/index.html 中定义 
 #### 4.1 功能模块
 
 **密钥管理**：
+
 - 创建新密钥（输入名称）
 - 显示密钥列表（隐藏哈希值）
 - 复制密钥到剪贴板
 - 删除密钥
 
 **页面管理**：
+
 - 显示所有页面列表
 - 显示标题、描述、访问次数
 - 页面预览链接
 - 删除页面
 
 **统计信息**：
+
 - 总页面数
 - 总访问次数
 - 活跃密钥数
 
 **配置指南**：
+
 - Worker URL 配置说明
 - 密钥配置说明
 - 快速开始步骤
@@ -1174,7 +1215,7 @@ echo "3. 访问 Worker URL 打开管理界面"
 - 所有敏感操作需要密钥验证
 - 密钥使用 SHA-256 哈希存储
 - 不同密钥有不同权限级别
-- 管理员密钥与共享密钥分离
+- 管理密钥与访问密钥分离（权限分离设计）
 
 ### 3. 速率限制
 
@@ -1329,21 +1370,24 @@ create_web_app(
 
 ### 用户管理操作
 
-**创建共享密钥**：
+**创建访问密钥**：
+
 1. 访问 Worker URL（管理界面）
-2. 输入管理员密钥登录
+2. 输入管理密钥登录
 3. 点击"创建新密钥"
-4. 输入名称（如："团队共享密钥"）
+4. 输入名称（如："nekro-agent-access"）
 5. 复制生成的密钥
-6. 分享给其他用户
+6. 在插件配置中填写
 
 **配置插件**：
+
 1. 在 NekroAgent 插件配置中
 2. 填写 `WORKER_URL`（如：`https://your-worker.workers.dev`）
-3. 填写 `DEFAULT_SHARE_KEY`（共享密钥）
+3. 填写 `ACCESS_KEY`（访问密钥）
 4. 保存配置
 
 **查看已创建的页面**：
+
 1. 访问管理界面
 2. 查看"页面列表"
 3. 点击链接预览
@@ -1358,6 +1402,7 @@ create_web_app(
 ### Q2: D1 数据库有什么限制？
 
 免费计划：
+
 - 10 GB 存储
 - 每天 500 万次读取
 - 每天 10 万次写入
@@ -1367,6 +1412,7 @@ create_web_app(
 ### Q3: Worker 部署后无法访问？
 
 检查：
+
 1. Worker 是否部署成功（`wrangler deploy`）
 2. D1 数据库是否绑定（`wrangler.toml` 配置）
 3. 管理员密钥是否正确设置
@@ -1393,7 +1439,7 @@ wrangler d1 execute webapp-db --file=backup.sql
 ### Q6: 密钥丢失怎么办？
 
 - 管理员密钥：重新生成并更新环境变量
-- 共享密钥：在管理界面删除旧密钥，创建新密钥
+- 访问密钥：在管理界面删除旧密钥，创建新密钥
 
 ### Q7: 如何删除过期页面？
 
@@ -1402,14 +1448,13 @@ wrangler d1 execute webapp-db --file=backup.sql
 ```typescript
 // 在 Worker 中添加 scheduled 处理器
 export default {
-    async scheduled(event: ScheduledEvent, env: Env) {
-        // 删除过期页面
-        await env.DB
-            .prepare('UPDATE pages SET is_active = 0 WHERE expires_at < ?')
-            .bind(Date.now())
-            .run();
-    }
-}
+  async scheduled(event: ScheduledEvent, env: Env) {
+    // 删除过期页面
+    await env.DB.prepare("UPDATE pages SET is_active = 0 WHERE expires_at < ?")
+      .bind(Date.now())
+      .run();
+  },
+};
 ```
 
 ### Q8: HTML 内容有什么限制？
@@ -1427,6 +1472,7 @@ export default {
 ### Q10: 如何自定义域名？
 
 在 Cloudflare Dashboard 中：
+
 1. 添加自定义域名
 2. 绑定到 Worker
 3. 配置 DNS
@@ -1481,4 +1527,3 @@ nekro-plugin-webapp/
 **文档版本**: 1.0.0  
 **最后更新**: 2025-10-22  
 **维护者**: NekroAgent Team
-
