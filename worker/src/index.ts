@@ -659,8 +659,8 @@ const WELCOME_PAGE_HTML = `
                 <a href="https://github.com/KroMiose/nekro-agent" class="btn" target="_blank" rel="noopener">
                     📦 NekroAgent 仓库
                 </a>
-                <a href="https://github.com/KroMiose/nekro-agent/tree/main/data/nekro_agent/plugins/workdir/nekro-plugin-webapp" class="btn btn-secondary" target="_blank" rel="noopener">
-                    🔌 插件文档
+                <a href="https://github.com/KroMiose/nekro-plugin-webapp" class="btn btn-secondary" target="_blank" rel="noopener">
+                    🔌 WebApp 插件仓库
                 </a>
             </div>
         </div>
