@@ -29,29 +29,64 @@
 
 ✅ **检查点**：你的 GitHub 账号下现在有一个 `nekro-plugin-webapp` 仓库
 
-#### 第二步：连接 Cloudflare
+#### 第二步：创建 D1 数据库
 
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)（没有账号的话先注册）
-2. 左侧菜单选择 **Workers & Pages**
-3. 点击 **Create application** → **Pages** → **Connect to Git**
-4. 授权 Cloudflare 访问你的 GitHub（首次使用需要授权）
-5. 选择你 fork 的 `nekro-plugin-webapp` 仓库
-6. 点击 **Begin setup**
-7. **重要配置**：
+1. 在 Cloudflare Dashboard 左侧菜单选择 **Workers & Pages** → **D1**
+2. 点击 **Create database**
+3. 填写数据库名称：`nekro-webapp-db`（或其他名称）
+4. 点击 **Create**
+5. 创建成功后，在数据库详情页面找到 **Database ID**
+6. **复制这个 Database ID**（格式如：`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`）
+
+✅ **检查点**：已获得 Database ID
+
+#### 第三步：填写 Database ID
+
+1. 在你 fork 的 GitHub 仓库中，打开 `worker/wrangler.toml` 文件
+2. 找到 [[d1_databases]] 部分：
+   ```toml
+   database_id = "8630897a-5205-4e08-a105-8789dfdcc353"  # 请替换为你的 Database ID
+   ```
+3. 点击编辑（铅笔图标）
+4. **将 `8630897a-5205-4e08-a105-8789dfdcc353` 替换为你刚才复制的 Database ID**
+5. 提交更改（Commit changes）
+
+✅ **检查点**：`wrangler.toml` 中已填写你的 Database ID
+
+#### 第四步：初始化数据库表结构
+
+1. 回到 Cloudflare Dashboard 的 D1 数据库页面
+2. 点击你刚创建的数据库
+3. 点击 **Console** 标签
+4. 在你的 GitHub 仓库中打开 `worker/schema.sql` 文件
+5. 复制所有 SQL 内容
+6. 粘贴到 D1 Console 中
+7. 点击 **Execute** 执行
+
+✅ **检查点**：数据库表已创建（应该看到成功信息）
+
+#### 第五步：连接 GitHub 部署 Worker
+
+1. 在 Cloudflare Dashboard 左侧菜单选择 **Workers & Pages**
+2. 点击 **Create application** → **Pages** → **Connect to Git**
+3. 授权 Cloudflare 访问你的 GitHub（首次使用需要授权）
+4. 选择你 fork 的 `nekro-plugin-webapp` 仓库
+5. 点击 **Begin setup**
+6. **重要配置**：
    - **Project name**: 随意命名（如：`nekro-webapp`）
    - **Production branch**: `main`
    - **Build settings**: 
      - **Framework preset**: 无（None）
-     - **Build command**: `pnpm run build` ⚠️ **重要！这会自动创建数据库**
+     - **Build command**: `npx wrangler deploy` (默认，不需要修改)
      - **Build output directory**: 留空
      - **Root directory (根目录)**: `/worker` ⚠️ **重要！必须填 `/worker`**
-8. 点击 **Save and Deploy**
+7. 点击 **Save and Deploy**
 
 ⏱️ 等待 2-3 分钟，Cloudflare 会自动构建和部署
 
 ✅ **完成**：获得 Worker URL（格式如：`https://nekro-webapp.pages.dev`）
 
-#### 第三步：首次访问自动初始化
+#### 第六步：验证部署
 
 1. 复制你的 Worker URL
 2. 在浏览器中访问这个 URL
@@ -60,7 +95,7 @@
 
 ✅ **完成**！Worker 现在可以使用了
 
-#### 第四步：配置 NekroAgent 插件
+#### 第七步：配置 NekroAgent 插件
 
 1. 打开 NekroAgent
 2. 进入插件配置页面
@@ -71,7 +106,7 @@
    - 其他保持默认即可
 5. 保存配置
 
-#### 第五步：访问管理界面并更换密钥
+#### 第八步：访问管理界面并更换密钥
 
 1. 打开管理界面：`http://localhost:8021/plugins/nekro_plugin_webapp/`
 2. 如果提示输入管理员密钥，输入：`admin-change-me-immediately`
@@ -83,7 +118,7 @@
 - 将新密钥保存到插件配置中
 - 默认密钥仅用于首次配置，请务必更换！
 
-#### 第六步：测试部署（30 秒）
+#### 第九步：测试部署
 
 让 AI 帮你创建第一个网页：
 

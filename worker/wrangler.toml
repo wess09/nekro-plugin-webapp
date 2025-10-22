@@ -8,11 +8,11 @@ compatibility_date = "2024-01-01"
 workers_dev = true
 
 # D1 数据库绑定
-# Cloudflare 会在连接 GitHub 时自动创建数据库
+# ⚠️ 重要：请将 database_id 替换为你在 Cloudflare 创建的数据库 ID
 [[d1_databases]]
 binding = "DB"
 database_name = "webapp-db"
-# database_id 会在首次部署时自动填充
+database_id = "8630897a-5205-4e08-a105-8789dfdcc353"  # 请替换为你的 Database ID
 
 # 环境变量
 [vars]
