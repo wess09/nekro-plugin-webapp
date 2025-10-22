@@ -4,20 +4,18 @@
 
 export interface Env {
 	DB: D1Database;
-	ADMIN_KEY_HASH: string;
 	DB_INITIALIZED?: string;
 }
 
 export interface ApiKey {
 	key_id: string;
-	key_hash: string;
+	api_key: string;  // 改为明文存储
 	key_name: string;
 	created_by: string | null;
 	created_at: number;
 	expires_at: number | null;
 	is_active: number;
 	usage_count: number;
-	max_pages: number;
 	permissions: string;
 	metadata: string | null;
 }

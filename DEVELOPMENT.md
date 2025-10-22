@@ -233,19 +233,11 @@ cd worker
 
 # 创建 .dev.vars 文件
 cat > .dev.vars << EOF
-ADMIN_KEY_HASH=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
 DB_INITIALIZED=false
 EOF
 ```
 
 `.dev.vars` 文件会被 `.gitignore` 忽略，不会提交到仓库。
-
-**生产环境**（使用 Wrangler Secrets）：
-
-```bash
-# 设置生产环境密钥
-echo "your-sha256-hash" | wrangler secret put ADMIN_KEY_HASH
-```
 
 ## 📦 构建和部署
 
@@ -303,12 +295,14 @@ wrangler d1 execute webapp-db --file=schema.sql
 # 更新 wrangler.toml 中的 database_id
 ```
 
-### 设置生产环境变量
+### 注意事项
 
-```bash
-# 设置管理员密钥哈希
-echo "your-production-hash" | wrangler secret put ADMIN_KEY_HASH
-```
+管理员密钥存储在数据库中：
+
+- 首次部署后访问管理界面
+- 在首次设置页面设置管理员密钥
+- 密钥存储在 D1 数据库的 `settings` 表中
+- 无需配置任何环境变量
 
 ### 发布流程
 

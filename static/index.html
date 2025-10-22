@@ -12,272 +12,418 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --primary-light: #d1fae5;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --bg-main: #f9fafb;
+            --bg-card: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 2rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.6;
         }
 
         #app {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 2rem 1rem;
         }
 
         .header {
-            background: rgba(255, 255, 255, 0.95);
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+        }
+
+        /* 初始化卡片 */
+        .init-card {
+            background: var(--bg-card);
             border-radius: 12px;
             padding: 2rem;
             margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        h1 {
-            color: #667eea;
-            margin-bottom: 0.5rem;
+        .init-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            text-align: center;
         }
 
-        .subtitle {
-            color: #666;
-            font-size: 0.9em;
+        .init-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            text-align: center;
         }
 
-        .status {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.85em;
-            margin-top: 1rem;
-        }
-
-        .status.healthy {
-            background: #4caf50;
-            color: white;
-        }
-
-        .status.error {
-            background: #f44336;
-            color: white;
-        }
-
-        .status.warning {
-            background: #ff9800;
-            color: white;
-        }
-
-        .card {
-            background: white;
+        /* 配置卡片 */
+        .config-card {
+            background: var(--bg-card);
             border-radius: 12px;
             padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
         }
 
-        .card h2 {
-            color: #333;
+        .config-title {
+            font-size: 1.25rem;
+            font-weight: 600;
             margin-bottom: 1rem;
-            font-size: 1.3em;
+            color: var(--text-primary);
         }
 
-        .button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 0.6rem 1.2rem;
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--border);
             border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 0.9em;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            justify-content: center;
         }
 
-        .button:hover {
-            background: #5568d3;
+        .btn-primary {
+            background: var(--primary);
+            color: white;
         }
 
-        .button.danger {
-            background: #f44336;
+        .btn-primary:hover {
+            background: var(--primary-dark);
         }
 
-        .button.danger:hover {
-            background: #da190b;
+        .btn-danger {
+            background: var(--danger);
+            color: white;
         }
 
-        .button:disabled {
-            background: #ccc;
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #f3f4f6;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
-        .input-group {
-            margin-bottom: 1rem;
+        .btn-sm {
+            width: auto;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.813rem;
         }
 
-        .input-group label {
-            display: block;
-            margin-bottom: 0.3rem;
-            color: #555;
-            font-size: 0.9em;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 0.6rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 0.9em;
-        }
-
-        .key-item, .page-item {
-            border: 1px solid #eee;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 0.8rem;
-            background: #f9f9f9;
-        }
-
-        .key-item-header, .page-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .key-name, .page-title {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .key-id, .page-id {
-            font-family: monospace;
-            font-size: 0.85em;
-            color: #666;
-        }
-
-        .key-info, .page-info {
-            font-size: 0.85em;
-            color: #777;
-            margin-top: 0.5rem;
-        }
-
-        .key-value {
-            background: #f5f5f5;
-            padding: 0.5rem;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 0.85em;
-            word-break: break-all;
-            margin-top: 0.5rem;
-            border: 1px dashed #ddd;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .button-group button {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.85em;
-        }
-
+        /* 统计卡片 */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1rem;
-            margin-top: 1rem;
+            margin-bottom: 2rem;
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--bg-card);
+            border-radius: 12px;
             padding: 1.5rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            margin-bottom: 0.3rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
         }
 
         .stat-label {
-            font-size: 0.9em;
-            opacity: 0.9;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            color: #999;
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
         }
 
+        /* 数据表格 */
+        .data-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--bg-main);
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.875rem;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-main);
+        }
+
+        /* 标签 */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        /* 警告框 */
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+        }
+
+        .alert-warning {
+            background: var(--warning-light);
+            border-color: var(--warning);
+            color: #92400e;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .alert-success {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: #065f46;
+        }
+
+        /* 加载动画 */
         .loading {
             text-align: center;
             padding: 2rem;
-            color: #666;
+            color: var(--text-secondary);
         }
 
-        .toast {
+        .spinner {
+            display: inline-block;
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
             position: fixed;
-            top: 2rem;
-            right: 2rem;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            color: white;
-            font-size: 0.9em;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             z-index: 1000;
-            animation: slideIn 0.3s;
         }
 
-        .toast.success {
-            background: #4caf50;
+        .modal {
+            background: var(--bg-card);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
         }
 
-        .toast.error {
-            background: #f44336;
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
         }
 
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .key-display {
+            background: var(--bg-main);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            word-break: break-all;
+            border: 1px solid var(--border);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
             }
-            to {
-                transform: translateX(0);
-                opacity: 1;
+
+            .stats-grid {
+                grid-template-columns: 1fr;
             }
-        }
 
-        .setup-guide {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
+            table {
+                font-size: 0.75rem;
+            }
 
-        .setup-guide h3 {
-            color: #856404;
-            margin-bottom: 0.5rem;
-            font-size: 1em;
-        }
-
-        .setup-guide ol {
-            margin-left: 1.5rem;
-            color: #856404;
-        }
-
-        .setup-guide li {
-            margin: 0.5rem 0;
-            font-size: 0.9em;
-        }
-
-        .setup-guide code {
-            background: #fff;
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-            font-size: 0.85em;
+            th, td {
+                padding: 0.5rem;
+            }
         }
     </style>
 </head>
@@ -285,176 +431,278 @@
     <div id="app">
         <div class="header">
             <h1>🚀 WebApp 部署管理</h1>
-            <p class="subtitle">通过 Cloudflare Workers 快速部署 HTML 应用</p>
-            <div class="status" :class="healthStatus.class">
-                {{ healthStatus.text }}
-            </div>
+            <p>快速部署和管理你的 Web 应用</p>
         </div>
 
-        <!-- 管理员密钥输入 -->
-        <div class="card" v-if="workerConfigured && !adminKey">
-            <h2>🔐 输入管理员密钥</h2>
-            <p style="margin-bottom: 1rem; color: #666;">
-                请输入在插件配置中设置的管理员密钥，以管理页面和密钥。
-                密钥将保存在浏览器本地存储中。
-            </p>
-            <div class="input-group">
-                <label>管理员密钥</label>
-                <input v-model="adminKey" type="password" placeholder="输入管理员密钥" @keyup.enter="saveAdminKey" />
+        <!-- 首次初始化 -->
+        <div v-if="!systemInitialized && !loading" class="init-card">
+            <div class="init-title">🔐 首次设置</div>
+            <div class="init-description">
+                欢迎！请设置管理员密钥来开始使用系统
             </div>
-            <button class="button" @click="saveAdminKey">
-                保存并继续
+            <div class="alert alert-warning">
+                <strong>重要：</strong>请妥善保管此密钥，它拥有完全管理权限
+            </div>
+            <div class="form-group">
+                <label class="form-label">管理员密钥（至少 8 个字符）</label>
+                <input 
+                    type="password" 
+                    class="form-input" 
+                    v-model="initAdminKey"
+                    placeholder="请输入一个强密钥"
+                    @keyup.enter="initializeSystem"
+                >
+            </div>
+            <button class="btn btn-primary" @click="initializeSystem" :disabled="initAdminKey.length < 8">
+                ✅ 设置并开始使用
             </button>
-            <p style="margin-top: 1rem; font-size: 0.85em; color: #999;">
-                提示：如果使用的是默认密钥，请输入 "admin-change-me-immediately"
-            </p>
         </div>
 
-        <!-- 设置指南 -->
-        <div class="card" v-if="!workerConfigured">
-            <h2>📖 部署指南</h2>
-            <div class="setup-guide">
-                <h3>快速开始（5分钟完成）</h3>
-                <ol>
-                    <li>访问 <a href="https://dash.cloudflare.com/" target="_blank">Cloudflare Dashboard</a>，登录或注册账号</li>
-                    <li>在左侧菜单选择 <code>Workers & Pages</code></li>
-                    <li>点击 <code>Create application</code> → <code>Create Worker</code></li>
-                    <li>点击 <code>Connect to Git</code>，连接此仓库（<code>nekro-plugin-webapp</code>）</li>
-                    <li>Cloudflare 会自动识别 <code>worker/</code> 目录并部署</li>
-                    <li>在 Worker 设置中创建 D1 数据库：
-                        <ul>
-                            <li>Settings → Variables → D1 database bindings</li>
-                            <li>点击 <code>Add binding</code></li>
-                            <li>Variable name: <code>DB</code></li>
-                            <li>点击 <code>Create new database</code>，名称填 <code>webapp-db</code></li>
-                        </ul>
-                    </li>
-                    <li>设置环境变量 <code>ADMIN_KEY_HASH</code>：
-                        <ul>
-                            <li>在 Settings → Variables → Environment Variables</li>
-                            <li>点击 <code>Add variable</code></li>
-                            <li>Name: <code>ADMIN_KEY_HASH</code></li>
-                            <li>Value: 生成管理员密钥的 SHA-256 哈希（见下方工具）</li>
-                            <li>勾选 <code>Encrypt</code></li>
-                        </ul>
-                    </li>
-                    <li>初始化数据库：在 Worker 的 D1 database 页面，执行 <code>worker/schema.sql</code> 中的 SQL</li>
-                    <li>复制 Worker URL 和管理员密钥，填写到 NekroAgent 插件配置中</li>
-                </ol>
-                
-                <h3 style="margin-top: 1rem;">生成管理员密钥</h3>
-                <div class="input-group">
-                    <button class="button" @click="generateAdminKey">生成新密钥</button>
+        <!-- 登录界面 -->
+        <div v-else-if="!adminKey && systemInitialized" class="init-card">
+            <div class="init-title">🔑 登录</div>
+            <div class="init-description">
+                请输入管理员密钥以继续
+            </div>
+            <div class="form-group">
+                <label class="form-label">管理员密钥</label>
+                <input 
+                    type="password" 
+                    class="form-input" 
+                    v-model="loginAdminKey"
+                    placeholder="请输入管理员密钥"
+                    @keyup.enter="login"
+                >
+            </div>
+            <button class="btn btn-primary" @click="login" :disabled="!loginAdminKey">
+                🚀 登录
+            </button>
+        </div>
+
+        <!-- 主界面 -->
+        <div v-if="adminKey && systemInitialized">
+            <!-- 统计信息 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">📄 总页面数</div>
+                    <div class="stat-value">{{ stats.pages_count }}</div>
                 </div>
-                <div v-if="generatedKey.key">
-                    <div class="key-value">
-                        <strong>密钥（保存好，仅显示一次）：</strong><br>
-                        {{ generatedKey.key }}
-                    </div>
-                    <div class="key-value" style="margin-top: 0.5rem;">
-                        <strong>SHA-256 哈希（填入环境变量）：</strong><br>
-                        {{ generatedKey.hash }}
-                    </div>
-                    <button class="button" @click="copyToClipboard(generatedKey.hash)" style="margin-top: 0.5rem;">
-                        复制哈希值
+                <div class="stat-card">
+                    <div class="stat-label">🔑 API 密钥数</div>
+                    <div class="stat-value">{{ stats.keys_count }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">👁️ 总访问量</div>
+                    <div class="stat-value">{{ stats.total_access }}</div>
+                </div>
+            </div>
+
+            <!-- API 密钥管理 -->
+            <div class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title">🔑 API 密钥</h2>
+                    <button class="btn btn-primary btn-sm" @click="showCreateKeyModal = true">
+                        ➕ 创建密钥
+                    </button>
+                </div>
+
+                <div v-if="loadingKeys" class="loading">
+                    <div class="spinner"></div>
+                    <p>加载中...</p>
+                </div>
+
+                <div v-else-if="keys.length === 0" class="empty-state">
+                    <div class="empty-state-icon">🔑</div>
+                    <p>暂无 API 密钥，点击上方按钮创建</p>
+                </div>
+
+                <div v-else class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th>密钥</th>
+                                <th>权限</th>
+                                <th>使用次数</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="key in keys" :key="key.key_id">
+                                <td>{{ key.key_name }}</td>
+                                <td>
+                                    <div class="key-display">{{ key.api_key }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-success">{{ key.permissions }}</span>
+                                </td>
+                                <td>{{ key.usage_count }}</td>
+                                <td>{{ formatDate(key.created_at) }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-secondary btn-sm" @click="copyKey(key.api_key)">
+                                            📋 复制
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" @click="deleteKey(key.key_id)">
+                                            🗑️ 删除
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 页面管理 -->
+            <div class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title">📄 已部署页面</h2>
+                    <button class="btn btn-secondary btn-sm" @click="loadPages">
+                        🔄 刷新
+                    </button>
+                </div>
+
+                <div v-if="loadingPages" class="loading">
+                    <div class="spinner"></div>
+                    <p>加载中...</p>
+                </div>
+
+                <div v-else-if="pages.length === 0" class="empty-state">
+                    <div class="empty-state-icon">📄</div>
+                    <p>暂无已部署页面</p>
+                </div>
+
+                <div v-else class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>标题</th>
+                                <th>描述</th>
+                                <th>访问次数</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="page in pages" :key="page.page_id">
+                                <td><strong>{{ page.title }}</strong></td>
+                                <td>{{ page.description || '-' }}</td>
+                                <td>{{ page.access_count }}</td>
+                                <td>{{ formatDate(page.created_at) }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-secondary btn-sm" @click="openPage(page.page_id)">
+                                            🔗 访问
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" @click="deletePage(page.page_id)">
+                                            🗑️ 删除
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 系统管理 -->
+            <div class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title">⚙️ 系统管理</h2>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Worker 地址：</strong>{{ workerUrl }}
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+                    <button class="btn btn-secondary btn-sm" @click="showChangePasswordModal = true">
+                        🔑 修改管理密钥
+                    </button>
+                    <button class="btn btn-secondary btn-sm" @click="logout">
+                        🚪 退出登录
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- 统计信息 -->
-        <div class="card" v-if="workerConfigured">
-            <h2>📊 统计信息</h2>
-            <div v-if="stats" class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">{{ stats.pages_count }}</div>
-                    <div class="stat-label">总页面数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ stats.keys_count }}</div>
-                    <div class="stat-label">活跃密钥</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ stats.total_access }}</div>
-                    <div class="stat-label">总访问次数</div>
-                </div>
-            </div>
-            <div v-else class="loading">加载中...</div>
+        <!-- 加载中 -->
+        <div v-if="loading" class="loading">
+            <div class="spinner"></div>
+            <p>检查系统状态...</p>
         </div>
 
-        <!-- 密钥管理 -->
-        <div class="card" v-if="workerConfigured">
-            <h2>🔑 API 密钥管理</h2>
-            
-            <div class="input-group">
-                <label>密钥名称</label>
-                <input v-model="newKeyName" placeholder="例如：团队共享密钥" />
-            </div>
-            <button class="button" @click="createKey" :disabled="!newKeyName.trim()">
-                创建新密钥
-            </button>
-
-            <div v-if="loading.keys" class="loading">加载中...</div>
-            <div v-else-if="keys.length === 0" class="empty-state">
-                暂无密钥，点击上方按钮创建
-            </div>
-            <div v-else style="margin-top: 1.5rem;">
-                <div v-for="key in keys" :key="key.key_id" class="key-item">
-                    <div class="key-item-header">
-                        <div>
-                            <div class="key-name">{{ key.key_name }}</div>
-                            <div class="key-id">ID: {{ key.key_id }}</div>
-                        </div>
-                        <button class="button danger" @click="deleteKey(key.key_id)">
-                            删除
-                        </button>
+        <!-- 创建密钥 Modal -->
+        <div class="modal-overlay" v-if="showCreateKeyModal" @click.self="showCreateKeyModal = false">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">创建 API 密钥</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">密钥名称</label>
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            v-model="newKeyName"
+                            placeholder="例如：测试密钥"
+                        >
                     </div>
-                    <div class="key-info">
-                        创建时间: {{ formatDate(key.created_at) }} | 
-                        使用次数: {{ key.usage_count }} | 
-                        权限: {{ key.permissions }}
+                    <div class="alert alert-info">
+                        创建后密钥将自动生成并显示在列表中，你可以随时复制
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @click="showCreateKeyModal = false">
+                        取消
+                    </button>
+                    <button class="btn btn-primary btn-sm" @click="createKey" :disabled="!newKeyName.trim()">
+                        创建
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- 页面管理 -->
-        <div class="card" v-if="workerConfigured">
-            <h2>📄 已部署页面</h2>
-            
-            <div v-if="loading.pages" class="loading">加载中...</div>
-            <div v-else-if="pages.length === 0" class="empty-state">
-                暂无页面，使用 AI 调用插件创建第一个页面
-            </div>
-            <div v-else>
-                <div v-for="page in pages" :key="page.page_id" class="page-item">
-                    <div class="page-item-header">
-                        <div>
-                            <div class="page-title">{{ page.title }}</div>
-                            <div class="page-id">{{ page.description }}</div>
-                        </div>
-                        <div class="button-group">
-                            <button class="button" @click="openPage(page.page_id)">
-                                访问
-                            </button>
-                            <button class="button danger" @click="deletePage(page.page_id)">
-                                删除
-                            </button>
-                        </div>
+        <!-- 修改密钥 Modal -->
+        <div class="modal-overlay" v-if="showChangePasswordModal" @click.self="showChangePasswordModal = false">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">修改管理密钥</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">当前密钥</label>
+                        <input 
+                            type="password" 
+                            class="form-input" 
+                            v-model="oldPassword"
+                            placeholder="请输入当前密钥"
+                        >
                     </div>
-                    <div class="page-info">
-                        ID: {{ page.page_id }} | 
-                        创建: {{ formatDate(page.created_at) }} | 
-                        访问: {{ page.access_count }}次
-                        <span v-if="page.expires_at"> | 过期: {{ formatDate(page.expires_at) }}</span>
+                    <div class="form-group">
+                        <label class="form-label">新密钥（至少 8 个字符）</label>
+                        <input 
+                            type="password" 
+                            class="form-input" 
+                            v-model="newPassword"
+                            placeholder="请输入新密钥"
+                        >
+                    </div>
+                    <div class="alert alert-warning">
+                        <strong>注意：</strong>修改后请立即更新 NekroAgent 插件配置中的密钥
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @click="closeChangePasswordModal">
+                        取消
+                    </button>
+                    <button class="btn btn-primary btn-sm" @click="changePassword" :disabled="!oldPassword || newPassword.length < 8">
+                        确认修改
+                    </button>
+                </div>
             </div>
-        </div>
-
-        <!-- Toast 提示 -->
-        <div v-if="toast.show" class="toast" :class="toast.type">
-            {{ toast.message }}
         </div>
     </div>
 
@@ -464,281 +712,301 @@
         createApp({
             data() {
                 return {
+                    loading: true,
+                    systemInitialized: false,
+                    adminKey: localStorage.getItem('adminKey') || '',
                     workerUrl: '',
-                    adminKey: '',
-                    workerConfigured: false,
-                    healthStatus: { text: '检查中...', class: 'warning' },
-                    stats: null,
+                    initAdminKey: '',
+                    loginAdminKey: '',
+                    stats: { pages_count: 0, keys_count: 0, total_access: 0 },
                     keys: [],
                     pages: [],
+                    loadingKeys: false,
+                    loadingPages: false,
+                    showCreateKeyModal: false,
                     newKeyName: '',
-                    generatedKey: { key: '', hash: '' },
-                    loading: {
-                        keys: false,
-                        pages: false,
-                    },
-                    toast: {
-                        show: false,
-                        type: 'success',
-                        message: '',
-                    },
+                    showChangePasswordModal: false,
+                    oldPassword: '',
+                    newPassword: '',
                 };
             },
-            mounted() {
-                this.checkHealth();
-                this.loadConfig();
+            async mounted() {
+                await this.checkSystemStatus();
             },
             methods: {
-                async checkHealth() {
+                async checkSystemStatus() {
+                    this.loading = true;
                     try {
-                        const response = await fetch('/plugins/nekro_plugin_webapp/health');
-                        const data = await response.json();
-                        
-                        if (data.status === 'healthy') {
-                            this.healthStatus = { text: '✅ Worker 运行正常', class: 'healthy' };
-                            this.workerConfigured = true;
-                            
-                            // 自动获取 Worker URL 和密钥
-                            if (data.worker_url) {
-                                this.workerUrl = data.worker_url;
+                        // 获取 Worker URL
+                        const healthResponse = await fetch('/plugins/KroMiose.nekro_plugin_webapp/health');
+                        if (healthResponse.ok) {
+                            const healthData = await healthResponse.json();
+                            this.workerUrl = healthData.worker_url || '';
+                        }
+
+                        // 检查系统是否已初始化
+                        if (this.workerUrl) {
+                            const statusResponse = await fetch(`${this.workerUrl}/api/health`);
+                            if (statusResponse.ok) {
+                                const statusData = await statusResponse.json();
+                                this.systemInitialized = statusData.initialized || false;
                             }
-                            
-                            // 注意：管理员密钥不会通过 API 传输，需要用户在页面上手动输入
-                            // 或者从浏览器本地存储加载
-                            const storedKey = localStorage.getItem('webapp_admin_key');
-                            if (storedKey) {
-                                this.adminKey = storedKey;
-                            }
-                            
-                            this.loadData();
-                        } else if (data.status === 'not_configured') {
-                            this.healthStatus = { text: '⚠️ 未配置 Worker', class: 'warning' };
-                        } else {
-                            this.healthStatus = { text: '❌ Worker 无法访问', class: 'error' };
+                        }
+
+                        // 如果已初始化且有密钥，加载数据
+                        if (this.systemInitialized && this.adminKey) {
+                            await this.loadAll();
                         }
                     } catch (error) {
-                        this.healthStatus = { text: '❌ 检查失败', class: 'error' };
+                        console.error('检查系统状态失败:', error);
+                    } finally {
+                        this.loading = false;
                     }
                 },
-                async loadData() {
+                async initializeSystem() {
+                    if (this.initAdminKey.length < 8) {
+                        alert('密钥至少需要 8 个字符');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`${this.workerUrl}/api/init`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ admin_key: this.initAdminKey })
+                        });
+
+                        if (response.ok) {
+                            alert('系统初始化成功！');
+                            this.adminKey = this.initAdminKey;
+                            localStorage.setItem('adminKey', this.adminKey);
+                            this.initAdminKey = '';
+                            this.systemInitialized = true;
+                            await this.loadAll();
+                        } else {
+                            const error = await response.json();
+                            alert('初始化失败：' + (error.error || '未知错误'));
+                        }
+                    } catch (error) {
+                        console.error('初始化失败:', error);
+                        alert('初始化失败：' + error.message);
+                    }
+                },
+                async login() {
+                    this.adminKey = this.loginAdminKey;
+                    localStorage.setItem('adminKey', this.adminKey);
+                    
+                    // 尝试加载数据验证密钥
+                    try {
+                        await this.loadStats();
+                        this.loginAdminKey = '';
+                    } catch (error) {
+                        alert('登录失败，请检查密钥是否正确');
+                        this.adminKey = '';
+                        localStorage.removeItem('adminKey');
+                    }
+                },
+                logout() {
+                    if (confirm('确定要退出登录吗？')) {
+                        this.adminKey = '';
+                        localStorage.removeItem('adminKey');
+                        this.stats = { pages_count: 0, keys_count: 0, total_access: 0 };
+                        this.keys = [];
+                        this.pages = [];
+                    }
+                },
+                async loadAll() {
                     await Promise.all([
                         this.loadStats(),
                         this.loadKeys(),
-                        this.loadPages(),
+                        this.loadPages()
                     ]);
                 },
-                async loadConfig() {
-                    // 配置在 checkHealth() 中已经加载
-                },
-                saveAdminKey() {
-                    if (this.adminKey && this.adminKey.trim()) {
-                        localStorage.setItem('webapp_admin_key', this.adminKey);
-                        this.showToast('管理员密钥已保存到浏览器', 'success');
-                        this.loadData();
-                    }
-                },
                 async loadStats() {
-                    if (!this.workerUrl || !this.adminKey) return;
-                    
+                    if (!this.workerUrl || !this.adminKey) {
+                        this.stats = { pages_count: 0, keys_count: 0, total_access: 0 };
+                        return;
+                    }
                     try {
                         const response = await fetch(`${this.workerUrl}/admin/stats`, {
-                            headers: {
-                                'Authorization': `Bearer ${this.adminKey}`
-                            }
+                            headers: { Authorization: `Bearer ${this.adminKey}` }
                         });
-                        
                         if (response.ok) {
                             this.stats = await response.json();
+                        } else {
+                            console.error('加载统计失败:', response.status);
+                            this.stats = { pages_count: 0, keys_count: 0, total_access: 0 };
                         }
                     } catch (error) {
-                        console.error('Failed to load stats:', error);
+                        console.error('加载统计失败:', error);
+                        this.stats = { pages_count: 0, keys_count: 0, total_access: 0 };
                     }
                 },
                 async loadKeys() {
-                    if (!this.workerUrl || !this.adminKey) return;
-                    
-                    this.loading.keys = true;
+                    if (!this.workerUrl || !this.adminKey) {
+                        this.keys = [];
+                        return;
+                    }
+                    this.loadingKeys = true;
                     try {
                         const response = await fetch(`${this.workerUrl}/admin/keys`, {
-                            headers: {
-                                'Authorization': `Bearer ${this.adminKey}`
-                            }
+                            headers: { Authorization: `Bearer ${this.adminKey}` }
                         });
-                        
                         if (response.ok) {
                             this.keys = await response.json();
                         } else {
-                            throw new Error('Failed to load keys');
+                            console.error('加载密钥失败:', response.status);
+                            this.keys = [];
                         }
                     } catch (error) {
-                        console.error('Failed to load keys:', error);
-                        this.showToast('加载密钥失败', 'error');
+                        console.error('加载密钥失败:', error);
+                        this.keys = [];
                     } finally {
-                        this.loading.keys = false;
+                        this.loadingKeys = false;
                     }
                 },
                 async loadPages() {
-                    if (!this.workerUrl || !this.adminKey) return;
-                    
-                    this.loading.pages = true;
+                    if (!this.workerUrl || !this.adminKey) {
+                        this.pages = [];
+                        return;
+                    }
+                    this.loadingPages = true;
                     try {
                         const response = await fetch(`${this.workerUrl}/admin/pages`, {
-                            headers: {
-                                'Authorization': `Bearer ${this.adminKey}`
-                            }
+                            headers: { Authorization: `Bearer ${this.adminKey}` }
                         });
-                        
                         if (response.ok) {
                             this.pages = await response.json();
                         } else {
-                            throw new Error('Failed to load pages');
+                            console.error('加载页面失败:', response.status);
+                            this.pages = [];
                         }
                     } catch (error) {
-                        console.error('Failed to load pages:', error);
-                        this.showToast('加载页面失败', 'error');
+                        console.error('加载页面失败:', error);
+                        this.pages = [];
                     } finally {
-                        this.loading.pages = false;
+                        this.loadingPages = false;
                     }
-                },
-                async generateAdminKey() {
-                    // 生成随机密钥
-                    const array = new Uint8Array(32);
-                    crypto.getRandomValues(array);
-                    const key = btoa(String.fromCharCode.apply(null, array))
-                        .replace(/\+/g, '-')
-                        .replace(/\//g, '_')
-                        .replace(/=/g, '');
-                    
-                    // 计算 SHA-256
-                    const encoder = new TextEncoder();
-                    const data = encoder.encode(key);
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                    
-                    this.generatedKey = { key, hash };
                 },
                 async createKey() {
-                    if (!this.newKeyName.trim()) {
-                        this.showToast('请输入密钥名称', 'error');
-                        return;
-                    }
-                    
-                    if (!this.workerUrl || !this.adminKey) {
-                        this.showToast('未配置 Worker', 'error');
-                        return;
-                    }
+                    if (!this.newKeyName.trim()) return;
                     
                     try {
                         const response = await fetch(`${this.workerUrl}/admin/keys`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${this.adminKey}`
+                                Authorization: `Bearer ${this.adminKey}`
                             },
-                            body: JSON.stringify({
-                                key_name: this.newKeyName
-                            })
+                            body: JSON.stringify({ key_name: this.newKeyName.trim() })
                         });
-                        
+
                         if (response.ok) {
-                            const data = await response.json();
-                            this.showToast('密钥创建成功', 'success');
+                            alert('密钥创建成功！');
+                            this.showCreateKeyModal = false;
                             this.newKeyName = '';
-                            
-                            // 显示新创建的密钥（仅此一次）
-                            alert(`新密钥创建成功！\n\n密钥（仅显示一次，请保存）：\n${data.api_key}\n\n密钥ID：${data.key_id}`);
-                            
-                            await this.loadKeys();
+                            await this.loadAll();
                         } else {
                             const error = await response.json();
-                            throw new Error(error.error || '创建失败');
+                            alert('创建失败：' + (error.error || '未知错误'));
                         }
                     } catch (error) {
-                        console.error('Failed to create key:', error);
-                        this.showToast('创建密钥失败: ' + error.message, 'error');
+                        console.error('创建密钥失败:', error);
+                        alert('创建失败：' + error.message);
                     }
                 },
                 async deleteKey(keyId) {
-                    if (!confirm('确定要删除这个密钥吗？删除后将无法恢复。')) return;
-                    
-                    if (!this.workerUrl || !this.adminKey) return;
-                    
+                    if (!confirm('确定要删除这个密钥吗？')) return;
+
                     try {
                         const response = await fetch(`${this.workerUrl}/admin/keys/${keyId}`, {
                             method: 'DELETE',
-                            headers: {
-                                'Authorization': `Bearer ${this.adminKey}`
-                            }
+                            headers: { Authorization: `Bearer ${this.adminKey}` }
                         });
-                        
+
                         if (response.ok) {
-                            this.showToast('密钥已删除', 'success');
-                            await this.loadKeys();
+                            alert('删除成功');
+                            await this.loadAll();
                         } else {
-                            throw new Error('删除失败');
+                            alert('删除失败');
                         }
                     } catch (error) {
-                        console.error('Failed to delete key:', error);
-                        this.showToast('删除密钥失败', 'error');
+                        console.error('删除密钥失败:', error);
+                        alert('删除失败：' + error.message);
                     }
                 },
                 async deletePage(pageId) {
-                    if (!confirm('确定要删除这个页面吗？删除后访问链接将失效。')) return;
-                    
-                    if (!this.workerUrl || !this.adminKey) return;
-                    
+                    if (!confirm('确定要删除这个页面吗？')) return;
+
                     try {
-                        const response = await fetch(`${this.workerUrl}/api/pages/${pageId}`, {
+                        const response = await fetch(`${this.workerUrl}/admin/pages/${pageId}`, {
                             method: 'DELETE',
-                            headers: {
-                                'Authorization': `Bearer ${this.adminKey}`
-                            }
+                            headers: { Authorization: `Bearer ${this.adminKey}` }
                         });
-                        
+
                         if (response.ok) {
-                            this.showToast('页面已删除', 'success');
-                            await this.loadPages();
-                            await this.loadStats();
+                            alert('删除成功');
+                            await this.loadAll();
                         } else {
-                            throw new Error('删除失败');
+                            alert('删除失败');
                         }
                     } catch (error) {
-                        console.error('Failed to delete page:', error);
-                        this.showToast('删除页面失败', 'error');
+                        console.error('删除页面失败:', error);
+                        alert('删除失败：' + error.message);
                     }
+                },
+                async changePassword() {
+                    if (!this.oldPassword || this.newPassword.length < 8) return;
+
+                    try {
+                        const response = await fetch(`${this.workerUrl}/admin/password`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${this.adminKey}`
+                            },
+                            body: JSON.stringify({
+                                old_key: this.oldPassword,
+                                new_key: this.newPassword
+                            })
+                        });
+
+                        if (response.ok) {
+                            alert('管理密钥修改成功！请立即更新插件配置中的密钥。');
+                            this.adminKey = this.newPassword;
+                            localStorage.setItem('adminKey', this.adminKey);
+                            this.closeChangePasswordModal();
+                        } else {
+                            const error = await response.json();
+                            alert('修改失败：' + (error.error || '未知错误'));
+                        }
+                    } catch (error) {
+                        console.error('修改密钥失败:', error);
+                        alert('修改失败：' + error.message);
+                    }
+                },
+                closeChangePasswordModal() {
+                    this.showChangePasswordModal = false;
+                    this.oldPassword = '';
+                    this.newPassword = '';
+                },
+                copyKey(key) {
+                    navigator.clipboard.writeText(key).then(() => {
+                        alert('密钥已复制到剪贴板');
+                    }).catch(err => {
+                        console.error('复制失败:', err);
+                        alert('复制失败，请手动复制');
+                    });
                 },
                 openPage(pageId) {
-                    if (!this.workerUrl) {
-                        this.showToast('Worker URL 未配置', 'error');
-                        return;
-                    }
-                    // 在新标签页打开页面
-                    const url = `${this.workerUrl}/${pageId}`;
-                    window.open(url, '_blank');
-                },
-                async copyToClipboard(text) {
-                    try {
-                        await navigator.clipboard.writeText(text);
-                        this.showToast('已复制到剪贴板', 'success');
-                    } catch (error) {
-                        this.showToast('复制失败', 'error');
-                    }
+                    window.open(`${this.workerUrl}/${pageId}`, '_blank');
                 },
                 formatDate(timestamp) {
-                    if (!timestamp) return '-';
                     const date = new Date(timestamp);
                     return date.toLocaleString('zh-CN');
-                },
-                showToast(message, type = 'success') {
-                    this.toast = { show: true, message, type };
-                    setTimeout(() => {
-                        this.toast.show = false;
-                    }, 3000);
-                },
-            },
+                }
+            }
         }).mount('#app');
     </script>
 </body>
 </html>
-

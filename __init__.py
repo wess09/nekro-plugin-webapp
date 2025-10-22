@@ -14,11 +14,10 @@
 
 ### 配置插件
 
-1. 部署 Cloudflare Worker（详见 `DEPLOYMENT.md`）
+1. 部署 Cloudflare Worker（详见 `README.md`）
 2. 在插件配置中填写：
    - `WORKER_URL`: Worker 访问地址
-   - `ADMIN_API_KEY`: 管理员密钥
-   - `DEFAULT_SHARE_KEY`: 共享密钥（可选）
+   - `DEFAULT_SHARE_KEY`: 共享密钥（在管理界面创建）
 
 ### AI 调用示例
 
@@ -124,9 +123,9 @@ async def create_web_app(
     if not config.WORKER_URL:
         raise ValueError("未配置 Worker 地址，请先在插件配置中设置 WORKER_URL")
 
-    api_key = config.DEFAULT_SHARE_KEY or config.ADMIN_API_KEY
+    api_key = config.DEFAULT_SHARE_KEY
     if not api_key:
-        raise ValueError("未配置 API 密钥，请先在插件配置中设置密钥")
+        raise ValueError("未配置 API 密钥，请先在管理界面创建密钥并填写到 DEFAULT_SHARE_KEY 配置中")
 
     # 4. 构造请求
     request_data = CreatePageRequest(

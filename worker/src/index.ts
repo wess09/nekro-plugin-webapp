@@ -3,8 +3,8 @@
  */
 
 import { Env, CreatePageRequest, CreatePageResponse } from './types';
-import { validateApiKey, hasPermission, generateKeyHash } from './auth';
-import { createPage, getPage, incrementAccessCount, deletePage, listPages, createApiKey, listApiKeys, deleteApiKey, getStats } from './storage';
+import { validateApiKey, hasPermission, generateApiKey } from './auth';
+import { createPage, getPage, incrementAccessCount, deletePage, listPages, createApiKey, listApiKeys, deleteApiKey, getStats, getAdminKey, setAdminKey } from './storage';
 import { ensureDatabaseInitialized } from './init';
 
 /**
@@ -99,7 +99,32 @@ export default {
 async function handleAPI(request: Request, env: Env, path: string): Promise<Response> {
 	// 健康检查
 	if (path === '/api/health') {
-		return jsonResponse({ status: 'healthy', timestamp: Date.now() });
+		const adminKey = await getAdminKey(env);
+		return jsonResponse({ 
+			status: 'healthy', 
+			timestamp: Date.now(),
+			initialized: !!adminKey
+		});
+	}
+
+	// 初始化管理密钥（仅在未设置时可用）
+	if (path === '/api/init' && request.method === 'POST') {
+		try {
+			const adminKey = await getAdminKey(env);
+			if (adminKey) {
+				return errorResponse('管理密钥已设置，无法重复初始化', 400);
+			}
+
+			const body = (await request.json()) as { admin_key: string };
+			if (!body.admin_key || body.admin_key.trim().length < 8) {
+				return errorResponse('管理密钥至少需要 8 个字符', 400);
+			}
+
+			await setAdminKey(body.admin_key.trim(), env);
+			return jsonResponse({ message: '管理密钥设置成功' }, 201);
+		} catch (e: any) {
+			return errorResponse(e.message || '初始化失败', 500);
+		}
 	}
 
 	// 验证 API 密钥
@@ -209,20 +234,13 @@ async function handleAdmin(request: Request, env: Env, path: string): Promise<Re
 				return errorResponse('密钥名称不能为空');
 			}
 
-			// 生成新密钥
-			const newKey = crypto.randomUUID();
-			const keyHash = await generateKeyHash(newKey);
+		// 生成新密钥（简化版 - 直接明文）
+		const newKey = generateApiKey();
 
-			const apiKey = await createApiKey(body.key_name, keyHash, auth.keyId!, env);
+		const apiKey = await createApiKey(body.key_name, newKey, auth.keyId!, env);
 
-			// 返回密钥原文（仅此一次）
-			return jsonResponse(
-				{
-					...apiKey,
-					api_key: newKey, // 原始密钥，仅显示一次
-				},
-				201
-			);
+		// 返回密钥（明文存储，随时可见）
+		return jsonResponse(apiKey, 201);
 		} catch (e: any) {
 			return errorResponse(e.message || '创建密钥失败', 500);
 		}
@@ -251,6 +269,32 @@ async function handleAdmin(request: Request, env: Env, path: string): Promise<Re
 	if (path === '/admin/stats' && request.method === 'GET') {
 		const stats = await getStats(env);
 		return jsonResponse(stats);
+	}
+
+	// PUT /admin/password - 修改管理密钥（需要提供旧密钥）
+	if (path === '/admin/password' && request.method === 'PUT') {
+		try {
+			const body = (await request.json()) as { old_key: string; new_key: string };
+			
+			if (!body.old_key || !body.new_key) {
+				return errorResponse('旧密钥和新密钥都不能为空', 400);
+			}
+
+			if (body.new_key.trim().length < 8) {
+				return errorResponse('新密钥至少需要 8 个字符', 400);
+			}
+
+			// 验证旧密钥（这里 auth 已经是管理员）
+			const currentAdminKey = await getAdminKey(env);
+			if (currentAdminKey !== body.old_key.trim()) {
+				return errorResponse('旧密钥不正确', 403);
+			}
+
+			await setAdminKey(body.new_key.trim(), env);
+			return jsonResponse({ message: '管理密钥修改成功' });
+		} catch (e: any) {
+			return errorResponse(e.message || '修改失败', 500);
+		}
 	}
 
 	return errorResponse('Not Found', 404);

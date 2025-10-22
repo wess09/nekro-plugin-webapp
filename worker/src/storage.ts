@@ -5,6 +5,39 @@
 import { Env, Page, ApiKey, CreatePageRequest } from './types';
 
 /**
+ * 获取系统设置
+ */
+export async function getSetting(key: string, env: Env): Promise<string | null> {
+	const result = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(key).first<{ value: string }>();
+	return result?.value || null;
+}
+
+/**
+ * 设置系统设置
+ */
+export async function setSetting(key: string, value: string, env: Env): Promise<void> {
+	await env.DB.prepare(
+		'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = ?'
+	)
+		.bind(key, value, Date.now(), value, Date.now())
+		.run();
+}
+
+/**
+ * 获取管理员密钥
+ */
+export async function getAdminKey(env: Env): Promise<string | null> {
+	return await getSetting('admin_api_key', env);
+}
+
+/**
+ * 设置管理员密钥（仅首次或提供旧密钥时允许）
+ */
+export async function setAdminKey(newKey: string, env: Env): Promise<void> {
+	await setSetting('admin_api_key', newKey, env);
+}
+
+/**
  * 生成唯一的页面 ID
  */
 function generatePageId(): string {
@@ -106,33 +139,32 @@ export async function listPages(env: Env, limit: number = 100): Promise<Page[]> 
 }
 
 /**
- * 创建 API 密钥
+ * 创建 API 密钥（简化版 - 明文存储）
  */
-export async function createApiKey(keyName: string, keyHash: string, createdBy: string, env: Env): Promise<ApiKey> {
+export async function createApiKey(keyName: string, apiKey: string, createdBy: string, env: Env): Promise<ApiKey> {
 	const now = Date.now();
 	const keyId = crypto.randomUUID().substring(0, 12);
 
 	await env.DB.prepare(
 		`
             INSERT INTO api_keys (
-                key_id, key_hash, key_name, created_by,
-                created_at, is_active, max_pages, permissions
-            ) VALUES (?, ?, ?, ?, ?, 1, 100, 'create,view')
+                key_id, api_key, key_name, created_by,
+                created_at, is_active, permissions
+            ) VALUES (?, ?, ?, ?, ?, 1, 'create,view')
         `
 	)
-		.bind(keyId, keyHash, keyName, createdBy, now)
+		.bind(keyId, apiKey, keyName, createdBy, now)
 		.run();
 
 	return {
 		key_id: keyId,
-		key_hash: keyHash,
+		api_key: apiKey,
 		key_name: keyName,
 		created_by: createdBy,
 		created_at: now,
 		expires_at: null,
 		is_active: 1,
 		usage_count: 0,
-		max_pages: 100,
 		permissions: 'create,view',
 		metadata: null,
 	};

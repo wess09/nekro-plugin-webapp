@@ -1,32 +1,23 @@
 /**
- * 认证和授权模块
+ * 认证和授权模块 - 简化版（明文密钥）
  */
 
 import { Env, ApiKey, AuthResult } from './types';
+import { getAdminKey } from './storage';
 
 /**
- * 计算字符串的 SHA-256 哈希
- */
-async function sha256(message: string): Promise<string> {
-	const msgBuffer = new TextEncoder().encode(message);
-	const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * 验证 API 密钥
+ * 验证 API 密钥（使用明文比对）
  */
 export async function validateApiKey(authorization: string | null, env: Env): Promise<AuthResult> {
 	if (!authorization || !authorization.startsWith('Bearer ')) {
 		return { valid: false };
 	}
 
-	const apiKey = authorization.substring(7);
-	const keyHash = await sha256(apiKey);
+	const apiKey = authorization.substring(7).trim();
 
-	// 检查是否是管理员密钥
-	if (keyHash === env.ADMIN_KEY_HASH) {
+	// 从数据库检查是否是管理员密钥
+	const adminKey = await getAdminKey(env);
+	if (adminKey && apiKey === adminKey) {
 		return {
 			valid: true,
 			keyId: 'admin',
@@ -34,8 +25,10 @@ export async function validateApiKey(authorization: string | null, env: Env): Pr
 		};
 	}
 
-	// 检查数据库中的密钥
-	const result = await env.DB.prepare('SELECT * FROM api_keys WHERE key_hash = ? AND is_active = 1').bind(keyHash).first<ApiKey>();
+	// 检查数据库中的密钥（明文）
+	const result = await env.DB.prepare(
+		'SELECT * FROM api_keys WHERE api_key = ? AND is_active = 1'
+	).bind(apiKey).first<ApiKey>();
 
 	if (!result) {
 		return { valid: false };
@@ -47,7 +40,9 @@ export async function validateApiKey(authorization: string | null, env: Env): Pr
 	}
 
 	// 更新使用次数
-	await env.DB.prepare('UPDATE api_keys SET usage_count = usage_count + 1 WHERE key_id = ?').bind(result.key_id).run();
+	await env.DB.prepare(
+		'UPDATE api_keys SET usage_count = usage_count + 1 WHERE key_id = ?'
+	).bind(result.key_id).run();
 
 	return {
 		valid: true,
@@ -64,9 +59,15 @@ export function hasPermission(permissions: string[], required: string): boolean 
 }
 
 /**
- * 生成 SHA-256 哈希（用于管理接口）
+ * 生成随机 API 密钥
  */
-export async function generateKeyHash(key: string): Promise<string> {
-	return await sha256(key);
+export function generateApiKey(): string {
+	const array = new Uint8Array(32);
+	crypto.getRandomValues(array);
+	return btoa(String.fromCharCode(...array))
+		.replace(/\+/g, '-')
+		.replace(/\//g, '_')
+		.replace(/=/g, '')
+		.substring(0, 40);
 }
 

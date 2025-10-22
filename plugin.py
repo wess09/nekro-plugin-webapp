@@ -25,13 +25,6 @@ class WebAppConfig(ConfigBase):
         description="Cloudflare Worker 的完整 URL (如: https://your-worker.workers.dev)",
     )
 
-    ADMIN_API_KEY: str = Field(
-        default="",
-        title="管理员密钥",
-        description="Worker 管理员密钥，用于管理操作",
-        json_schema_extra={"is_secret": True},
-    )
-
     DEFAULT_SHARE_KEY: str = Field(
         default="",
         title="默认共享密钥",

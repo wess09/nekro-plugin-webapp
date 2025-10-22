@@ -52,6 +52,7 @@ class WorkerHealthResponse(BaseModel):
 
     status: str = Field(..., description="状态")
     timestamp: int = Field(..., description="时间戳")
+    initialized: bool = Field(default=False, description="是否已初始化管理密钥")
 
 
 class WorkerStats(BaseModel):

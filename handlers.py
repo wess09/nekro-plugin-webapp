@@ -51,7 +51,7 @@ def create_router() -> APIRouter:
                     "worker_status": worker_health.status,
                     "worker_timestamp": worker_health.timestamp,
                     "worker_url": config.WORKER_URL,
-                    "admin_key_configured": bool(config.ADMIN_API_KEY),
+                    "initialized": worker_health.initialized,
                     "message": "Worker 运行正常",
                 }
         except httpx.HTTPError as e:
