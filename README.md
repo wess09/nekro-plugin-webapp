@@ -37,10 +37,14 @@
 4. 授权 Cloudflare 访问你的 GitHub（首次使用需要授权）
 5. 选择你 fork 的 `nekro-plugin-webapp` 仓库
 6. 点击 **Begin setup**
-7. 配置页面：
+7. **重要配置**：
    - **Project name**: 随意命名（如：`nekro-webapp`）
    - **Production branch**: `main`
-   - **Build settings**: 保持默认（Cloudflare 自动识别）
+   - **Build settings**: 
+     - **Framework preset**: 无（None）
+     - **Build command**: `npx wrangler deploy`
+     - **Build output directory**: 留空
+     - **Root directory (根目录)**: `/worker` ⚠️ **重要！必须填 `/worker`**
 8. 点击 **Save and Deploy**
 
 ⏱️ 等待 2-3 分钟，Cloudflare 会自动构建和部署
