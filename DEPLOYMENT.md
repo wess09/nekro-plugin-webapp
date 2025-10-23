@@ -75,26 +75,7 @@
 
 ---
 
-### 第四步：初始化数据库表结构
-
-1. 回到 Cloudflare Dashboard 的 D1 数据库页面
-2. 点击你刚创建的数据库进入详情页
-3. 点击顶部的 **Console** 标签
-4. 在你的 GitHub 仓库中打开 `worker/schema.sql` 文件
-5. 复制所有 SQL 内容（4 个表 + 索引）
-6. 粘贴到 D1 Console 的输入框中
-7. 点击 **Execute** 按钮执行 SQL
-
-执行成功后，你应该看到类似以下的输出：
-```
-Query succeeded: 4 rows affected
-```
-
-✅ **检查点**：数据库表已创建（settings, api_keys, pages, access_logs）
-
----
-
-### 第五步：连接 GitHub 部署 Worker
+### 第四步：连接 GitHub 部署 Worker
 
 1. 在 Cloudflare Dashboard 左侧菜单选择 **Workers & Pages**
 2. 点击 **Create application** 按钮
@@ -123,7 +104,7 @@ Query succeeded: 4 rows affected
 
 ---
 
-### 第六步：验证部署
+### 第五步：验证部署
 
 1. 复制你的 Worker URL
 2. 在浏览器中访问这个 URL
