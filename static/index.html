@@ -507,7 +507,7 @@
                 </div>
 
                 <div class="alert alert-info" style="margin-bottom: 1.5rem;">
-                    <strong>提示：</strong>创建 API 密钥后，将其配置到 NekroAgent 插件的 <code style="background: rgba(0,0,0,0.1); padding: 0.125rem 0.375rem; border-radius: 3px;">ACCESS_KEY</code> 参数中，即可使用该密钥创建页面
+                    <strong>提示：</strong>创建 API 密钥后，将其配置到 NekroAgent 插件的 <code style="background: rgba(0,0,0,0.1); padding: 0.125rem 0.375rem; border-radius: 3px;">ACCESS_KEY</code> 参数中，AI 即可使用该密钥创建页面
                 </div>
 
                 <div v-if="loadingKeys" class="loading">
@@ -831,7 +831,8 @@
                         }
                         
                         const pluginHealthData = await pluginHealthResponse.json();
-                        this.workerUrl = pluginHealthData.worker_url || '';
+                        // 规范化 Worker URL：移除尾部斜杠
+                        this.workerUrl = (pluginHealthData.worker_url || '').replace(/\/+$/, '');
                         
                         if (!this.workerUrl) {
                             console.error('Worker URL 未配置');
