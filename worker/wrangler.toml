@@ -8,6 +8,7 @@ compatibility_date = "2024-01-01"
 workers_dev = true
 
 # D1 数据库绑定
+# D1 数据库绑定
 # ⚠️ 重要：请将 database_id 替换为你在 Cloudflare 创建的数据库 ID
 [[d1_databases]]
 binding = "DB"
